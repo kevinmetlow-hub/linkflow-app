@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Book Service</title>
+  <meta name="theme-color" content="#eef3f8" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="shell shell-narrow">
+    <div class="panel center hero-accent">
+      <div class="eyebrow">Book Service</div>
+      <h1 class="customer-hero" id="customerBizName">Sunshine Pressure Washing</h1>
+      <p class="sub" id="customerBizSub">Fast quotes. Easy booking.</p>
+
+      <div class="btn-row center-row">
+        <button class="primary" id="startQuoteBtn">Get Quote</button>
+        <button id="startEstimateBtn">Request Estimate</button>
+      </div>
+    </div>
+
+    <div class="panel mt16">
+      <div id="customerStep1" class="step active">
+        <h2>Service Details</h2>
+        <p class="sub">Tell us a few details and we’ll give you a quote or let you book an estimate.</p>
+
+        <div class="row">
+          <div>
+            <label>Service</label>
+            <select id="custService"></select>
+          </div>
+          <div>
+            <label>Your name</label>
+            <input id="custName" placeholder="John Smith" />
+          </div>
+          <div>
+            <label>Phone</label>
+            <input id="custPhone" placeholder="(555) 555-5555" />
+          </div>
+          <div>
+            <label>Address</label>
+            <input id="custAddress" placeholder="123 Main St" />
+          </div>
+        </div>
+
+        <div id="dynamicQuestions" class="row mt12"></div>
+
+        <div class="btn-row">
+          <button class="primary" id="continueCustomerBtn">Continue</button>
+        </div>
+      </div>
+
+      <div id="customerStep2" class="step">
+        <div class="quote-box">
+          <div class="eyebrow">Result</div>
+          <div id="resultTitle">Your quote</div>
+          <div class="quote-price" id="quotePrice">$0</div>
+          <div class="sub" id="quoteBreakdown"></div>
+        </div>
+
+        <div class="btn-row center-row">
+          <button class="primary" id="continueScheduleBtn">Accept & Schedule</button>
+          <button id="restartCustomerBtn">Start Over</button>
+        </div>
+      </div>
+
+      <div id="customerStep3" class="step">
+        <h2>Choose a Time</h2>
+        <div class="row">
+          <div>
+            <label>Date</label>
+            <select id="scheduleDate">
+              <option>Tomorrow</option>
+              <option>This Friday</option>
+              <option>This Saturday</option>
+            </select>
+          </div>
+          <div>
+            <label>Time window</label>
+            <select id="scheduleTime">
+              <option>8–10 AM</option>
+              <option>10–12 PM</option>
+              <option>1–3 PM</option>
+              <option>3–5 PM</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="primary" id="continueAgreementBtn">Continue</button>
+          <button data-step="customerStep2">Back</button>
+        </div>
+      </div>
+
+      <div id="customerStep4" class="step">
+        <div class="doc">
+          <h3 id="agreementHeading">Service Agreement</h3>
+          <p><strong>Business:</strong> <span id="docBizName"></span></p>
+          <p><strong>Customer:</strong> <span id="docCustName"></span></p>
+          <p><strong>Service:</strong> <span id="docService"></span></p>
+          <p><strong>Price / Type:</strong> <span id="docPrice"></span></p>
+          <p><strong>Address:</strong> <span id="docAddress"></span></p>
+          <p><strong>Scheduled:</strong> <span id="docSchedule"></span></p>
+          <p>By signing below, you approve the requested service or estimate visit and confirm the booking details above.</p>
+          <div class="section doc-section">Customer signature</div>
+          <canvas id="customerSig" class="signature" width="900" height="300"></canvas>
+          <div class="btn-row">
+            <button id="clearCustomerSigBtn">Clear Signature</button>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="primary" id="finishBookingBtn">Confirm Booking</button>
+          <button data-step="customerStep3">Back</button>
+        </div>
+      </div>
+
+      <div id="customerStep5" class="step center">
+        <div class="eyebrow">Booked</div>
+        <h2>You’re booked</h2>
+        <p class="sub" id="confirmText"></p>
+        <div class="notice">We’ll reach out if anything changes.</div>
+        <div class="btn-row center-row">
+          <button id="newTestBookingBtn">Book Another Service</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
