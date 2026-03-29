@@ -1,4 +1,4 @@
-const STORAGE_KEY = "linkflow_real_app_v1";
+const STORAGE_KEY = "linkflow_real_app_v2";
 
 const DEMO = {
   business: {
@@ -21,7 +21,7 @@ const DEMO = {
     },
     {
       id: "svc2",
-      name: "House Wash Estimate",
+      name: "House Wash Appointment",
       base: 0,
       mode: "estimate",
       questions: [
@@ -43,6 +43,7 @@ let state = {
   currentServiceId: null,
   editingServiceId: null
 };
+let latestAnswers = [];
 
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return document.querySelectorAll(sel); }
@@ -91,12 +92,14 @@ function renderSharedBits(){
   if(qs("quoteMode")) qs("quoteMode").value = state.business.mode;
   if(qs("agreementTitle")) qs("agreementTitle").value = state.business.agreementTitle;
 
-  if(qs("previewBusinessName")) qs("previewBusinessName").textContent = state.business.name;
-  if(qs("previewBusinessPhone")) qs("previewBusinessPhone").textContent = state.business.phone;
-  if(qs("previewMode")) qs("previewMode").textContent = state.business.mode === "both" ? "Quote + Estimate" : state.business.mode === "quote" ? "Instant Quote Only" : "Estimate Booking Only";
-
   if(qs("customerBizName")) qs("customerBizName").textContent = state.business.name;
-  if(qs("customerBizSub")) qs("customerBizSub").textContent = "Fast quotes. Easy booking.";
+  if(qs("customerBizSub")){
+    qs("customerBizSub").textContent = state.business.mode === "estimate"
+      ? "Book an appointment in a few taps."
+      : state.business.mode === "quote"
+      ? "Get a quote in a few taps."
+      : "Get a quote or book an appointment in a few taps.";
+  }
   if(qs("agreementHeading")) qs("agreementHeading").textContent = state.business.agreementTitle;
 }
 function saveSettings(){
@@ -138,23 +141,21 @@ function renderJobs(){
   const empty = '<div class="job-card"><div class="mini">No jobs yet. Use the customer page to create a booking.</div></div>';
 
   if(recent){
-    if(!state.jobs.length) recent.innerHTML = empty;
-    else recent.innerHTML = state.jobs.slice(0,3).map(j => `
+    recent.innerHTML = !state.jobs.length ? empty : state.jobs.slice(0,3).map(j => `
       <div class="job-card">
         <strong>${escapeHtml(j.customer)}</strong>
-        <div class="mini">${escapeHtml(j.serviceName)} · ${j.mode === "estimate" ? "Estimate Visit" : money(j.price)} · ${escapeHtml(j.scheduleDate)} ${escapeHtml(j.scheduleTime)}</div>
+        <div class="mini">${escapeHtml(j.serviceName)} · ${j.mode === "estimate" ? "Appointment" : money(j.price)} · ${escapeHtml(j.scheduleDate)} ${escapeHtml(j.scheduleTime)}</div>
       </div>
     `).join("");
   }
 
   if(all){
-    if(!state.jobs.length) all.innerHTML = empty;
-    else all.innerHTML = state.jobs.map(j => `
+    all.innerHTML = !state.jobs.length ? empty : state.jobs.map(j => `
       <div class="job-card">
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
           <div>
-            <strong>${escapeHtml(j.customer)}</strong> <span class="chip">${j.mode === "estimate" ? "Estimate" : "Quote"}</span>
-            <div class="mini">${escapeHtml(j.serviceName)} · ${j.mode === "estimate" ? "Estimate Visit" : money(j.price)} · ${escapeHtml(j.scheduleDate)} ${escapeHtml(j.scheduleTime)}</div>
+            <strong>${escapeHtml(j.customer)}</strong> <span class="chip">${j.mode === "estimate" ? "Appointment" : "Quote"}</span>
+            <div class="mini">${escapeHtml(j.serviceName)} · ${j.mode === "estimate" ? "Appointment" : money(j.price)} · ${escapeHtml(j.scheduleDate)} ${escapeHtml(j.scheduleTime)}</div>
             <div class="mini">${escapeHtml(j.address)} · ${escapeHtml(j.phone)}</div>
           </div>
           <button data-complete-job="${j.id}">Mark Complete</button>
@@ -171,13 +172,7 @@ function clearJobs(){
   renderJobs();
 }
 function newService(){
-  const service = {
-    id: uid("svc"),
-    name: "New Service",
-    base: 0,
-    mode: "quote",
-    questions: []
-  };
+  const service = { id: uid("svc"), name: "New Service", base: 0, mode: "quote", questions: [] };
   state.services.push(service);
   state.editingServiceId = service.id;
   saveState();
@@ -187,22 +182,20 @@ function newService(){
 function renderServicesList(){
   const box = qs("serviceList");
   if(!box) return;
-  if(!state.services.length){
-    box.innerHTML = '<div class="service-card"><div class="mini">No services yet.</div></div>';
-    return;
-  }
-  box.innerHTML = state.services.map(s => `
-    <div class="service-card">
-      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-        <div>
-          <strong>${escapeHtml(s.name)}</strong>
-          <div class="mini">${s.mode === "quote" ? "Instant Quote" : "Estimate Only"} · Base ${money(s.base)}</div>
-          <div class="mini">${s.questions.length} question${s.questions.length === 1 ? "" : "s"}</div>
+  box.innerHTML = !state.services.length
+    ? '<div class="service-card"><div class="mini">No services yet.</div></div>'
+    : state.services.map(s => `
+      <div class="service-card">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div>
+            <strong>${escapeHtml(s.name)}</strong>
+            <div class="mini">${s.mode === "quote" ? "Get Quote" : "Book Appointment"} · Base ${money(s.base)}</div>
+            <div class="mini">${s.questions.length} question${s.questions.length === 1 ? "" : "s"}</div>
+          </div>
+          <button data-edit-service="${s.id}">Edit</button>
         </div>
-        <button data-edit-service="${s.id}">Edit</button>
       </div>
-    </div>
-  `).join("");
+    `).join("");
 }
 function openServiceEditor(id){
   state.editingServiceId = id;
@@ -215,40 +208,6 @@ function openServiceEditor(id){
   renderQuestionEditor(service);
   switchScreen("editor");
 }
-function renderQuestionEditor(service){
-  const box = qs("questionList");
-  if(!box) return;
-  if(!service.questions.length){
-    box.innerHTML = '<div class="question-card"><div class="mini">No questions yet. Add your first question.</div></div>';
-    return;
-  }
-  box.innerHTML = service.questions.map((q, i) => `
-    <div class="question-card">
-      <div class="row-compact">
-        <div>
-          <label>Question label</label>
-          <input data-q-label="${q.id}" value="${escapeHtml(q.label)}" />
-        </div>
-        <div>
-          <label>Question type</label>
-          <select data-q-type="${q.id}">
-            <option value="multiple" ${q.type==="multiple"?"selected":""}>Multiple Choice</option>
-            <option value="yesno" ${q.type==="yesno"?"selected":""}>Yes / No</option>
-            <option value="text" ${q.type==="text"?"selected":""}>Text Input</option>
-            <option value="number" ${q.type==="number"?"selected":""}>Number Input</option>
-          </select>
-        </div>
-      </div>
-      <div class="mt12">
-        <label>Options / pricing</label>
-        <input data-q-options="${q.id}" value="${serializeOptions(q)}" placeholder="Small|0,Medium|30,Large|60" />
-      </div>
-      <div class="btn-row">
-        <button data-delete-question="${q.id}" class="danger-btn">Delete Question</button>
-      </div>
-    </div>
-  `).join("");
-}
 function serializeOptions(q){
   if(q.type === "text" || q.type === "number") return "";
   return (q.options || []).map(o => `${o.label}|${o.price}`).join(",");
@@ -259,6 +218,38 @@ function parseOptions(raw, type){
     const bits = part.split("|");
     return { label:(bits[0] || "").trim(), price: parseFloat(bits[1]) || 0 };
   }).filter(x => x.label);
+}
+function renderQuestionEditor(service){
+  const box = qs("questionList");
+  if(!box) return;
+  box.innerHTML = !service.questions.length
+    ? '<div class="question-card"><div class="mini">No questions yet. Add your first question.</div></div>'
+    : service.questions.map(q => `
+      <div class="question-card">
+        <div class="row-compact">
+          <div>
+            <label>Question label</label>
+            <input data-q-label="${q.id}" value="${escapeHtml(q.label)}" />
+          </div>
+          <div>
+            <label>Question type</label>
+            <select data-q-type="${q.id}">
+              <option value="multiple" ${q.type==="multiple"?"selected":""}>Multiple Choice</option>
+              <option value="yesno" ${q.type==="yesno"?"selected":""}>Yes / No</option>
+              <option value="text" ${q.type==="text"?"selected":""}>Text Input</option>
+              <option value="number" ${q.type==="number"?"selected":""}>Number Input</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt12">
+          <label>Options / pricing</label>
+          <input data-q-options="${q.id}" value="${serializeOptions(q)}" placeholder="Small|0,Medium|30,Large|60" />
+        </div>
+        <div class="btn-row">
+          <button data-delete-question="${q.id}" class="danger-btn">Delete Question</button>
+        </div>
+      </div>
+    `).join("");
 }
 function addQuestion(){
   const service = state.services.find(s => s.id === state.editingServiceId);
@@ -278,7 +269,6 @@ function saveServiceEditor(){
   service.name = qs("editServiceName").value.trim() || "Untitled Service";
   service.base = parseFloat(qs("editServiceBase").value) || 0;
   service.mode = qs("editServiceMode").value;
-
   service.questions = service.questions.map(q => {
     const labelEl = document.querySelector(`[data-q-label="${q.id}"]`);
     const typeEl = document.querySelector(`[data-q-type="${q.id}"]`);
@@ -291,7 +281,6 @@ function saveServiceEditor(){
       options: parseOptions(optsEl ? optsEl.value : "", type)
     };
   });
-
   saveState();
   renderServicesList();
   renderCustomerServices();
@@ -334,15 +323,20 @@ function renderCustomerQuestions(){
     if(q.type === "number"){
       return `<div class="question-card"><label>${escapeHtml(q.label)}</label><input id="cq_${idx}" data-type="number" type="number" placeholder="Enter number" /></div>`;
     }
-    return `
-      <div class="question-card">
-        <label>${escapeHtml(q.label)}</label>
-        <select id="cq_${idx}" data-type="${q.type}">
-          ${(q.options || []).map((opt, oi) => `<option value="${oi}">${escapeHtml(opt.label)}</option>`).join("")}
-        </select>
-      </div>
-    `;
+    return `<div class="question-card"><label>${escapeHtml(q.label)}</label><select id="cq_${idx}" data-type="${q.type}">${(q.options || []).map((opt, oi) => `<option value="${oi}">${escapeHtml(opt.label)}</option>`).join("")}</select></div>`;
   }).join("");
+}
+function setCustomerModeUI(mode){
+  const chip = qs("stepModeChip");
+  const copy = qs("stepModeCopy");
+  if(!chip || !copy) return;
+  if(mode === "estimate"){
+    chip.textContent = "Appointment Mode";
+    copy.textContent = "Choose your service and request a scheduled appointment.";
+  } else {
+    chip.textContent = "Quote Mode";
+    copy.textContent = "Choose your service and get an instant quote first.";
+  }
 }
 function goStep(id){
   qsa(".step").forEach(s => s.classList.remove("active"));
@@ -350,13 +344,15 @@ function goStep(id){
 }
 function startCustomerFlow(mode){
   state.currentFlowMode = mode;
+  setCustomerModeUI(mode);
   goStep("customerStep1");
+  const target = qs("customerStep1");
+  if(target) target.scrollIntoView({behavior:"smooth", block:"start"});
 }
 function collectAnswersAndPrice(svc){
   let total = svc.base || 0;
   const parts = [`${svc.name}: ${money(svc.base)}`];
   const answers = [];
-
   svc.questions.forEach((q, idx) => {
     const el = qs("cq_" + idx);
     if(!el) return;
@@ -373,10 +369,8 @@ function collectAnswersAndPrice(svc){
       parts.push(`${q.label}: ${opt.label} (${(opt.price||0) >= 0 ? "+" : ""}${money(opt.price||0)})`);
     }
   });
-
   return { total, parts, answers };
 }
-let latestAnswers = [];
 function continueCustomerResult(){
   const svc = state.services.find(x => x.id === qs("custService").value);
   if(!svc) return;
@@ -385,9 +379,13 @@ function continueCustomerResult(){
   const resultMode = state.currentFlowMode === "estimate" || svc.mode === "estimate" ? "estimate" : "quote";
   state.currentQuote = result.total;
 
-  qs("resultTitle").textContent = resultMode === "estimate" ? "Estimate Visit" : "Your Quote";
-  qs("quotePrice").textContent = resultMode === "estimate" ? "Estimate" : money(result.total);
-  qs("quoteBreakdown").textContent = resultMode === "estimate" ? "Choose a time for an in-person estimate." : result.parts.join(" · ");
+  qs("resultTitle").textContent = resultMode === "estimate" ? "Appointment Request" : "Your Quote";
+  qs("quotePrice").textContent = resultMode === "estimate" ? "Book" : money(result.total);
+  qs("quoteBreakdown").textContent = resultMode === "estimate" ? "Choose a time for your appointment." : result.parts.join(" · ");
+
+  const continueBtn = qs("continueScheduleBtn");
+  if(continueBtn) continueBtn.textContent = resultMode === "estimate" ? "Book Appointment" : "Accept & Schedule";
+
   goStep("customerStep2");
 }
 function continueAgreement(){
@@ -397,7 +395,7 @@ function continueAgreement(){
   qs("docBizName").textContent = state.business.name;
   qs("docCustName").textContent = qs("custName").value || "Customer";
   qs("docService").textContent = svc ? svc.name : "";
-  qs("docPrice").textContent = isEstimate ? "Estimate Request" : money(state.currentQuote);
+  qs("docPrice").textContent = isEstimate ? "Appointment Request" : money(state.currentQuote);
   qs("docAddress").textContent = qs("custAddress").value || "";
   qs("docSchedule").textContent = `${qs("scheduleDate").value} · ${qs("scheduleTime").value}`;
   goStep("customerStep4");
@@ -422,7 +420,7 @@ function finishBooking(){
   saveState();
   renderMetrics();
   renderJobs();
-  qs("confirmText").textContent = `${job.serviceName} · ${isEstimate ? "Estimate Visit" : money(job.price)} · ${job.scheduleDate} ${job.scheduleTime}`;
+  qs("confirmText").textContent = `${job.serviceName} · ${isEstimate ? "Appointment" : money(job.price)} · ${job.scheduleDate} ${job.scheduleTime}`;
   goStep("customerStep5");
 }
 function initSignature(id){
