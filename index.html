@@ -22,7 +22,7 @@
         <div class="hero-card glass">
           <div class="eyebrow">Today</div>
           <h1>Run your bookings from one place.</h1>
-          <p class="sub">Manage services, pricing, jobs, and your public booking page like a real contractor app.</p>
+          <p class="sub">Manage services, pricing, jobs, and your public booking page from a cleaner, more app-like dashboard.</p>
           <div class="notice" id="bookingLinkNotice">customer.html</div>
           <div class="btn-row">
             <button id="openBookingPageBtn" class="primary">Open Booking Page</button>
@@ -30,22 +30,10 @@
         </div>
 
         <div class="metric-grid">
-          <div class="metric-card glass">
-            <div class="metric-k">New Leads</div>
-            <div class="metric-v" id="mNew">0</div>
-          </div>
-          <div class="metric-card glass">
-            <div class="metric-k">Booked</div>
-            <div class="metric-v" id="mScheduled">0</div>
-          </div>
-          <div class="metric-card glass">
-            <div class="metric-k">Completed</div>
-            <div class="metric-v" id="mCompleted">0</div>
-          </div>
-          <div class="metric-card glass">
-            <div class="metric-k">Quoted</div>
-            <div class="metric-v" id="mQuoted">0</div>
-          </div>
+          <div class="metric-card glass"><div class="metric-k">New Leads</div><div class="metric-v" id="mNew">0</div></div>
+          <div class="metric-card glass"><div class="metric-k">Booked</div><div class="metric-v" id="mScheduled">0</div></div>
+          <div class="metric-card glass"><div class="metric-k">Completed</div><div class="metric-v" id="mCompleted">0</div></div>
+          <div class="metric-card glass"><div class="metric-k">Quoted</div><div class="metric-v" id="mQuoted">0</div></div>
         </div>
 
         <div class="section-title">Recent Jobs</div>
@@ -85,8 +73,8 @@
             <div>
               <label>Mode</label>
               <select id="editServiceMode">
-                <option value="quote">Instant Quote</option>
-                <option value="estimate">Estimate Only</option>
+                <option value="quote">Get Quote</option>
+                <option value="estimate">Book Appointment</option>
               </select>
             </div>
           </div>
@@ -117,7 +105,7 @@
         <div class="glass editor-card">
           <div class="eyebrow">Booking Page</div>
           <h2>Your public page</h2>
-          <p class="sub">Customers do not need the app. They just click your link, fill out the form, and confirm booking.</p>
+          <p class="sub">Customers do not need the app. They just click your link, choose a service, and either get a quote or book an appointment.</p>
           <div class="notice" id="bookingLinkNoticeLinkTab">customer.html</div>
           <div class="btn-row">
             <button id="copyBookingLinkBtn2" class="primary">Copy Link</button>
@@ -146,9 +134,9 @@
             <div>
               <label>Booking mode</label>
               <select id="quoteMode">
-                <option value="both">Quote + Estimate</option>
-                <option value="quote">Instant Quote Only</option>
-                <option value="estimate">Estimate Booking Only</option>
+                <option value="both">Get Quote + Book Appointment</option>
+                <option value="quote">Get Quote Only</option>
+                <option value="estimate">Book Appointment Only</option>
               </select>
             </div>
             <div>
