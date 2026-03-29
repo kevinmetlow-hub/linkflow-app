@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>LinkFlow for Contractors</title>
+  <meta name="theme-color" content="#0b0f14" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">LinkFlow <small>Contractor App Starter</small></div>
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="landing">Landing</button>
+        <button class="tab-btn" data-tab="customer">Customer Link</button>
+        <button class="tab-btn" data-tab="admin">Admin</button>
+      </nav>
+    </header>
+
+    <section id="landing" class="app-tab">
+      <div class="grid">
+        <div class="panel hero">
+          <div class="eyebrow">Contractor quote + booking platform</div>
+          <h1>Send one link.<br>Get booked faster.</h1>
+          <p class="sub">
+            Built for pressure washing, detailing, lawn service, junk removal, handyman, and other local service businesses.
+            Customers fill out a form, get a quote or request an estimate, schedule, sign, and show up in the dashboard.
+          </p>
+          <div class="btn-row">
+            <button class="primary" data-go="customer">Open Customer Flow</button>
+            <button data-go="admin">Open Admin</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section">Launch layout</div>
+          <div class="card-list">
+            <div class="small-card"><strong>Public customer page</strong><div class="mini">Branded share link for customers.</div></div>
+            <div class="small-card"><strong>Admin app</strong><div class="mini">Dashboard, builder, jobs, settings.</div></div>
+            <div class="small-card"><strong>Backend-ready</strong><div class="mini">Frontend uses local storage now, Worker starter included for real API.</div></div>
+            <div class="small-card"><strong>App path</strong><div class="mini">Can become a PWA first, then an App Store app later.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="customer" class="app-tab hidden">
+      <div class="grid">
+        <div class="panel">
+          <h2>Customer Link</h2>
+          <p class="sub">This is the public contractor link a customer would open.</p>
+          <div class="divider"></div>
+
+          <div id="customerStep1" class="step active">
+            <div class="center">
+              <div class="eyebrow">Branded link page</div>
+              <h2 id="customerBizName"></h2>
+              <p class="sub" id="customerBizSub"></p>
+              <div class="btn-row center-row">
+                <button id="startQuoteBtn" class="primary">Get Instant Quote</button>
+                <button id="startEstimateBtn">Request Estimate</button>
+              </div>
+              <div class="footer-note" id="shareLinkLabel"></div>
+            </div>
+          </div>
+
+          <div id="customerStep2" class="step">
+            <div class="section">Customer details</div>
+            <div class="row">
+              <div><label>Your name</label><input id="custName" placeholder="John Smith" /></div>
+              <div><label>Phone</label><input id="custPhone" placeholder="(555) 555-5555" /></div>
+              <div><label>Address</label><input id="custAddress" placeholder="123 Main St" /></div>
+              <div><label>Select service</label><select id="custService"></select></div>
+            </div>
+            <div id="dynamicQuestions" class="row mt12"></div>
+            <div class="btn-row">
+              <button class="primary" id="continueCustomerBtn">Continue</button>
+              <button id="resetCustomerBtn">Back</button>
+            </div>
+          </div>
+
+          <div id="customerStep3" class="step">
+            <div class="quote-box">
+              <div class="eyebrow">Result</div>
+              <div id="resultTitle">Your quote</div>
+              <div class="quote-price" id="quotePrice">$0</div>
+              <div class="sub" id="quoteBreakdown"></div>
+            </div>
+            <div class="btn-row center-row">
+              <button class="primary" id="continueScheduleBtn">Accept & Schedule</button>
+              <button id="restartCustomerBtn">Start Over</button>
+            </div>
+          </div>
+
+          <div id="customerStep4" class="step">
+            <div class="section">Schedule</div>
+            <div class="row">
+              <div>
+                <label>Date</label>
+                <select id="scheduleDate">
+                  <option>Tomorrow</option>
+                  <option>This Friday</option>
+                  <option>This Saturday</option>
+                </select>
+              </div>
+              <div>
+                <label>Time window</label>
+                <select id="scheduleTime">
+                  <option>8–10 AM</option>
+                  <option>10–12 PM</option>
+                  <option>1–3 PM</option>
+                  <option>3–5 PM</option>
+                </select>
+              </div>
+            </div>
+            <div class="btn-row">
+              <button class="primary" id="continueAgreementBtn">Continue</button>
+              <button data-step="customerStep3">Back</button>
+            </div>
+          </div>
+
+          <div id="customerStep5" class="step">
+            <div class="doc">
+              <h3 id="agreementHeading"></h3>
+              <p><strong>Business:</strong> <span id="docBizName"></span></p>
+              <p><strong>Customer:</strong> <span id="docCustName"></span></p>
+              <p><strong>Service:</strong> <span id="docService"></span></p>
+              <p><strong>Price / Type:</strong> <span id="docPrice"></span></p>
+              <p><strong>Address:</strong> <span id="docAddress"></span></p>
+              <p><strong>Scheduled:</strong> <span id="docSchedule"></span></p>
+              <p>By signing below, the customer approves the requested service or estimate visit and acknowledges the contractor's terms.</p>
+              <div class="section doc-section">Customer signature</div>
+              <canvas id="customerSig" class="signature" width="900" height="300"></canvas>
+              <div class="btn-row">
+                <button id="clearCustomerSigBtn">Clear Signature</button>
+              </div>
+            </div>
+            <div class="btn-row">
+              <button class="primary" id="finishBookingBtn">Confirm Booking</button>
+              <button data-step="customerStep4">Back</button>
+            </div>
+          </div>
+
+          <div id="customerStep6" class="step">
+            <div class="center">
+              <div class="eyebrow">Done</div>
+              <h2>You’re booked</h2>
+              <p class="sub" id="confirmText"></p>
+              <div class="btn-row center-row">
+                <button class="primary" data-go="admin">Open Admin</button>
+                <button id="newTestBookingBtn">New Test Booking</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="panel">
+          <h2>Preview</h2>
+          <div class="card-list">
+            <div class="small-card"><strong>Contractor link</strong><div class="mini" id="previewLink"></div></div>
+            <div class="small-card"><strong>Current mode</strong><div class="mini" id="previewMode"></div></div>
+            <div class="small-card"><strong>Saved jobs</strong><div class="mini"><span id="jobsCount">0</span> jobs</div></div>
+            <div class="small-card"><strong>Demo admin password</strong><div class="mini">123456789</div></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="admin" class="app-tab hidden">
+      <div id="adminLoginView" class="auth-wrap panel">
+        <div class="eyebrow">Admin access</div>
+        <h2>Log in to admin</h2>
+        <p class="sub">Use the demo password to open the builder and dashboard.</p>
+        <div class="notice">Demo password: <strong>123456789</strong></div>
+        <div class="row single">
+          <div>
+            <label>Password</label>
+            <input id="adminPassword" type="password" placeholder="Enter admin password" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="primary" id="adminLoginBtn">Enter Admin</button>
+        </div>
+        <div id="loginMsg" class="mini mt10"></div>
+      </div>
+
+      <div id="adminAppView" class="hidden">
+        <div class="two-col">
+          <aside class="panel sidebar">
+            <a href="#" class="active" data-pane="dashboardPane">Dashboard</a>
+            <a href="#" data-pane="builderPane">Builder</a>
+            <a href="#" data-pane="servicesPane">Services</a>
+            <a href="#" data-pane="settingsPane">Settings</a>
+            <a href="#" data-pane="jobsPane">All Jobs</a>
+            <div class="btn-row">
+              <button id="adminLogoutBtn">Log Out</button>
+            </div>
+          </aside>
+
+          <div>
+            <div id="dashboardPane" class="admin-pane panel">
+              <h2>Admin Dashboard</h2>
+              <p class="sub">Builder and jobs live here so it feels like a real platform.</p>
+              <div class="metric-grid mt14">
+                <div class="metric"><div class="k">New Leads</div><div class="v" id="mNew">0</div></div>
+                <div class="metric"><div class="k">Scheduled</div><div class="v" id="mScheduled">0</div></div>
+                <div class="metric"><div class="k">Completed</div><div class="v" id="mCompleted">0</div></div>
+                <div class="metric"><div class="k">Quoted Jobs</div><div class="v" id="mQuoted">0</div></div>
+              </div>
+              <div class="section">Recent jobs</div>
+              <div id="recentJobs" class="job-list"></div>
+            </div>
+
+            <div id="builderPane" class="admin-pane panel hidden">
+              <h2>Business Builder</h2>
+              <p class="sub">Change business profile, customer link, and agreement title.</p>
+              <div class="section">Business</div>
+              <div class="row">
+                <div><label>Business name</label><input id="bizName" /></div>
+                <div><label>Service type</label><select id="bizType">
+                  <option>Pressure Washing</option><option>Car Detailing</option><option>Lawn Service</option>
+                  <option>Handyman</option><option>Junk Removal</option><option>Other</option></select></div>
+                <div><label>Phone</label><input id="bizPhone" /></div>
+                <div><label>Custom link slug</label><input id="bizSlug" /></div>
+              </div>
+              <div class="section">Modes</div>
+              <div class="row">
+                <div><label>Default customer mode</label><select id="quoteMode">
+                  <option value="both">Quote + Estimate</option>
+                  <option value="quote">Instant Quote Only</option>
+                  <option value="estimate">Estimate Booking Only</option>
+                </select></div>
+                <div><label>Agreement title</label><input id="agreementTitle" /></div>
+              </div>
+              <div class="btn-row">
+                <button class="primary" id="saveBuilderBtn">Save Business Settings</button>
+                <button id="loadDemoBtn">Load Demo Data</button>
+              </div>
+            </div>
+
+            <div id="servicesPane" class="admin-pane panel hidden">
+              <h2>Service Builder</h2>
+              <p class="sub">Create services with pricing logic or estimate-only mode.</p>
+              <div class="section">Add a service</div>
+              <div class="row3">
+                <div><label>Service name</label><input id="svcName" placeholder="Driveway Cleaning" /></div>
+                <div><label>Base price ($)</label><input id="svcBase" type="number" value="120" /></div>
+                <div><label>Mode</label><select id="svcMode"><option value="quote">Instant Quote</option><option value="estimate">Estimate Only</option></select></div>
+              </div>
+              <div class="row3 mt12">
+                <div><label>Question 1 label</label><input id="q1Label" value="How big is the job?" /></div>
+                <div><label>Question 1 options</label><input id="q1Opts" value="Small|0,Medium|30,Large|60" /></div>
+                <div class="mini end">Format: Label|price,Label|price</div>
+              </div>
+              <div class="row3 mt12">
+                <div><label>Question 2 label</label><input id="q2Label" value="Heavy stains / extra work?" /></div>
+                <div><label>Question 2 options</label><input id="q2Opts" value="No|0,Yes|35" /></div>
+                <div class="btn-row end"><button class="primary" id="addServiceBtn">Add Service</button></div>
+              </div>
+              <div class="section">Services</div>
+              <div id="serviceList" class="service-list"></div>
+            </div>
+
+            <div id="settingsPane" class="admin-pane panel hidden">
+              <h2>Settings</h2>
+              <p class="sub">Simple controls for this MVP starter.</p>
+              <div class="card-list">
+                <div class="small-card"><strong>Share link</strong><div class="mini" id="settingsLink"></div></div>
+                <div class="small-card"><strong>Demo password</strong><div class="mini">123456789</div></div>
+                <div class="small-card"><strong>Storage</strong><div class="mini">This starter uses local browser storage.</div></div>
+              </div>
+              <div class="btn-row">
+                <button id="clearJobsBtn">Clear All Jobs</button>
+                <button id="resetAllBtn">Reset Entire Starter</button>
+              </div>
+            </div>
+
+            <div id="jobsPane" class="admin-pane panel hidden">
+              <h2>All Jobs</h2>
+              <p class="sub">Full list of test jobs from the customer flow.</p>
+              <div id="jobList" class="job-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
