@@ -8,23 +8,20 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="shell shell-narrow">
-    <div class="panel center hero-accent">
+  <div class="customer-shell">
+    <div class="glass customer-hero">
       <div class="eyebrow">Book Service</div>
-      <h1 class="customer-hero" id="customerBizName">Sunshine Pressure Washing</h1>
+      <h1 class="customer-h1" id="customerBizName">Sunshine Pressure Washing</h1>
       <p class="sub" id="customerBizSub">Fast quotes. Easy booking.</p>
-
       <div class="btn-row center-row">
-        <button class="primary" id="startQuoteBtn">Get Quote</button>
+        <button id="startQuoteBtn" class="primary">Get Quote</button>
         <button id="startEstimateBtn">Request Estimate</button>
       </div>
     </div>
 
-    <div class="panel mt16">
+    <div class="glass customer-card">
       <div id="customerStep1" class="step active">
         <h2>Service Details</h2>
-        <p class="sub">Tell us a few details and we’ll give you a quote or let you book an estimate.</p>
-
         <div class="row">
           <div>
             <label>Service</label>
@@ -43,24 +40,21 @@
             <input id="custAddress" placeholder="123 Main St" />
           </div>
         </div>
-
-        <div id="dynamicQuestions" class="row mt12"></div>
-
+        <div id="dynamicQuestions" class="stack mt12"></div>
         <div class="btn-row">
-          <button class="primary" id="continueCustomerBtn">Continue</button>
+          <button id="continueCustomerBtn" class="primary">Continue</button>
         </div>
       </div>
 
       <div id="customerStep2" class="step">
         <div class="quote-box">
           <div class="eyebrow">Result</div>
-          <div id="resultTitle">Your quote</div>
-          <div class="quote-price" id="quotePrice">$0</div>
-          <div class="sub" id="quoteBreakdown"></div>
+          <div id="resultTitle">Your Quote</div>
+          <div id="quotePrice" class="quote-price">$0</div>
+          <div id="quoteBreakdown" class="sub"></div>
         </div>
-
         <div class="btn-row center-row">
-          <button class="primary" id="continueScheduleBtn">Accept & Schedule</button>
+          <button id="continueScheduleBtn" class="primary">Accept & Schedule</button>
           <button id="restartCustomerBtn">Start Over</button>
         </div>
       </div>
@@ -86,9 +80,8 @@
             </select>
           </div>
         </div>
-
         <div class="btn-row">
-          <button class="primary" id="continueAgreementBtn">Continue</button>
+          <button id="continueAgreementBtn" class="primary">Continue</button>
           <button data-step="customerStep2">Back</button>
         </div>
       </div>
@@ -103,15 +96,14 @@
           <p><strong>Address:</strong> <span id="docAddress"></span></p>
           <p><strong>Scheduled:</strong> <span id="docSchedule"></span></p>
           <p>By signing below, you approve the requested service or estimate visit and confirm the booking details above.</p>
-          <div class="section doc-section">Customer signature</div>
+          <div class="section-title">Customer signature</div>
           <canvas id="customerSig" class="signature" width="900" height="300"></canvas>
           <div class="btn-row">
             <button id="clearCustomerSigBtn">Clear Signature</button>
           </div>
         </div>
-
         <div class="btn-row">
-          <button class="primary" id="finishBookingBtn">Confirm Booking</button>
+          <button id="finishBookingBtn" class="primary">Confirm Booking</button>
           <button data-step="customerStep3">Back</button>
         </div>
       </div>
@@ -119,7 +111,7 @@
       <div id="customerStep5" class="step center">
         <div class="eyebrow">Booked</div>
         <h2>You’re booked</h2>
-        <p class="sub" id="confirmText"></p>
+        <p id="confirmText" class="sub"></p>
         <div class="notice">We’ll reach out if anything changes.</div>
         <div class="btn-row center-row">
           <button id="newTestBookingBtn">Book Another Service</button>
