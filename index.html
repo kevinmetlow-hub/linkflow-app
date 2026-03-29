@@ -3,214 +3,174 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>LinkFlow – Business Dashboard</title>
+  <title>LinkFlow – Contractor App</title>
   <meta name="theme-color" content="#eef3f8" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="shell">
-    <header class="topbar">
-      <div class="brand">
-        LinkFlow
-        <small>Business Dashboard</small>
+  <div class="app-shell">
+    <header class="app-header glass">
+      <div>
+        <div class="app-brand">LinkFlow</div>
+        <div class="app-sub">Contractor App</div>
       </div>
-
-      <nav class="tabs">
-        <button class="tab-btn active" data-tab="home">Home</button>
-        <button class="tab-btn" data-tab="services">Services</button>
-        <button class="tab-btn" data-tab="jobs">Jobs</button>
-        <button class="tab-btn" data-tab="link">Booking Page</button>
-        <button class="tab-btn" data-tab="settings">Settings</button>
-      </nav>
+      <button id="copyBookingLinkBtn" class="primary small-btn">Copy Link</button>
     </header>
 
-    <section id="home" class="app-tab">
-      <div class="grid">
-        <div class="panel hero hero-accent">
-          <div class="eyebrow">Dashboard</div>
-          <h1>Send a link.<br>Get booked.</h1>
-          <p class="sub">
-            Simple booking and quoting for local service businesses.
-            Customers fill out one form, you get the job—quoted or scheduled.
-          </p>
-
-          <div class="btn-row">
-            <button class="primary" id="copyLinkBtnTop">Copy Booking Link</button>
-            <button id="previewCustomerBtnTop">Preview Booking Page</button>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="section">Today</div>
-          <div class="metric-grid">
-            <div class="metric">
-              <div class="k">New Leads</div>
-              <div class="v" id="mNew">0</div>
-            </div>
-            <div class="metric">
-              <div class="k">Booked</div>
-              <div class="v" id="mScheduled">0</div>
-            </div>
-            <div class="metric">
-              <div class="k">Completed</div>
-              <div class="v" id="mCompleted">0</div>
-            </div>
-            <div class="metric">
-              <div class="k">Quoted Jobs</div>
-              <div class="v" id="mQuoted">0</div>
-            </div>
-          </div>
-
-          <div class="section">Your Booking Link</div>
+    <main class="app-main">
+      <section id="screen-home" class="screen active">
+        <div class="hero-card glass">
+          <div class="eyebrow">Today</div>
+          <h1>Run your bookings from one place.</h1>
+          <p class="sub">Manage services, pricing, jobs, and your public booking page like a real contractor app.</p>
           <div class="notice" id="bookingLinkNotice">customer.html</div>
+          <div class="btn-row">
+            <button id="openBookingPageBtn" class="primary">Open Booking Page</button>
+          </div>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-card glass">
+            <div class="metric-k">New Leads</div>
+            <div class="metric-v" id="mNew">0</div>
+          </div>
+          <div class="metric-card glass">
+            <div class="metric-k">Booked</div>
+            <div class="metric-v" id="mScheduled">0</div>
+          </div>
+          <div class="metric-card glass">
+            <div class="metric-k">Completed</div>
+            <div class="metric-v" id="mCompleted">0</div>
+          </div>
+          <div class="metric-card glass">
+            <div class="metric-k">Quoted</div>
+            <div class="metric-v" id="mQuoted">0</div>
+          </div>
+        </div>
+
+        <div class="section-title">Recent Jobs</div>
+        <div id="recentJobs" class="stack"></div>
+      </section>
+
+      <section id="screen-services" class="screen">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Services</div>
+            <h2>Your services</h2>
+          </div>
+          <button id="newServiceBtn" class="primary small-btn">New Service</button>
+        </div>
+        <div id="serviceList" class="stack"></div>
+      </section>
+
+      <section id="screen-editor" class="screen">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Service Editor</div>
+            <h2 id="editorTitle">Edit service</h2>
+          </div>
+          <button id="backToServicesBtn" class="small-btn">Back</button>
+        </div>
+
+        <div class="glass editor-card">
+          <div class="row">
+            <div>
+              <label>Service name</label>
+              <input id="editServiceName" placeholder="Driveway Cleaning" />
+            </div>
+            <div>
+              <label>Base price ($)</label>
+              <input id="editServiceBase" type="number" value="120" />
+            </div>
+            <div>
+              <label>Mode</label>
+              <select id="editServiceMode">
+                <option value="quote">Instant Quote</option>
+                <option value="estimate">Estimate Only</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="section-title">Questions</div>
+          <div id="questionList" class="stack"></div>
 
           <div class="btn-row">
-            <button class="primary" id="copyLinkBtn">Copy Link</button>
-            <button id="previewCustomerBtn">Preview Page</button>
+            <button id="addQuestionBtn" class="primary">Add Question</button>
+            <button id="saveServiceBtn">Save Service</button>
+            <button id="deleteServiceBtn" class="danger-btn">Delete Service</button>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="panel mt16">
-        <div class="section">Recent Jobs</div>
-        <div id="recentJobs" class="job-list"></div>
-      </div>
-    </section>
-
-    <section id="services" class="app-tab hidden">
-      <div class="panel">
-        <h2>Services</h2>
-        <p class="sub">Create services with instant quote or estimate-only mode.</p>
-
-        <div class="section">Add a Service</div>
-        <div class="row3">
+      <section id="screen-jobs" class="screen">
+        <div class="section-head">
           <div>
-            <label>Service name</label>
-            <input id="svcName" placeholder="Driveway Cleaning" />
+            <div class="eyebrow">Jobs</div>
+            <h2>All Jobs</h2>
           </div>
-          <div>
-            <label>Base price ($)</label>
-            <input id="svcBase" type="number" value="120" />
-          </div>
-          <div>
-            <label>Mode</label>
-            <select id="svcMode">
-              <option value="quote">Instant Quote</option>
-              <option value="estimate">Estimate Only</option>
-            </select>
+          <button id="clearJobsBtn" class="small-btn">Clear Jobs</button>
+        </div>
+        <div id="jobList" class="stack"></div>
+      </section>
+
+      <section id="screen-link" class="screen">
+        <div class="glass editor-card">
+          <div class="eyebrow">Booking Page</div>
+          <h2>Your public page</h2>
+          <p class="sub">Customers do not need the app. They just click your link, fill out the form, and confirm booking.</p>
+          <div class="notice" id="bookingLinkNoticeLinkTab">customer.html</div>
+          <div class="btn-row">
+            <button id="copyBookingLinkBtn2" class="primary">Copy Link</button>
+            <button id="openBookingPageBtn2">Open Page</button>
           </div>
         </div>
+      </section>
 
-        <div class="row3 mt12">
-          <div>
-            <label>Question 1 label</label>
-            <input id="q1Label" value="How big is the job?" />
+      <section id="screen-settings" class="screen">
+        <div class="glass editor-card">
+          <div class="eyebrow">Settings</div>
+          <h2>Business settings</h2>
+          <div class="row">
+            <div>
+              <label>Business name</label>
+              <input id="bizName" />
+            </div>
+            <div>
+              <label>Phone</label>
+              <input id="bizPhone" />
+            </div>
+            <div>
+              <label>Link slug</label>
+              <input id="bizSlug" />
+            </div>
+            <div>
+              <label>Booking mode</label>
+              <select id="quoteMode">
+                <option value="both">Quote + Estimate</option>
+                <option value="quote">Instant Quote Only</option>
+                <option value="estimate">Estimate Booking Only</option>
+              </select>
+            </div>
+            <div>
+              <label>Agreement title</label>
+              <input id="agreementTitle" />
+            </div>
           </div>
-          <div>
-            <label>Question 1 options</label>
-            <input id="q1Opts" value="Small|0,Medium|30,Large|60" />
-          </div>
-          <div class="mini end">Format: Label|price,Label|price</div>
-        </div>
-
-        <div class="row3 mt12">
-          <div>
-            <label>Question 2 label</label>
-            <input id="q2Label" value="Heavy stains / extra work?" />
-          </div>
-          <div>
-            <label>Question 2 options</label>
-            <input id="q2Opts" value="No|0,Yes|35" />
-          </div>
-          <div class="btn-row end">
-            <button class="primary" id="addServiceBtn">+ Add Service</button>
-          </div>
-        </div>
-
-        <div class="section">Current Services</div>
-        <div id="serviceList" class="service-list"></div>
-      </div>
-    </section>
-
-    <section id="jobs" class="app-tab hidden">
-      <div class="panel">
-        <h2>Jobs</h2>
-        <p class="sub">All leads, scheduled jobs, and completed work.</p>
-        <div id="jobList" class="job-list"></div>
-      </div>
-    </section>
-
-    <section id="link" class="app-tab hidden">
-      <div class="panel">
-        <h2>Your Booking Page</h2>
-        <p class="sub">Share this page with customers so they can book without downloading anything.</p>
-
-        <div class="notice" id="settingsLink">customer.html</div>
-
-        <div class="btn-row">
-          <button class="primary" id="copyLinkBtnLinkTab">Copy Link</button>
-          <button id="previewCustomerBtnLinkTab">Open Page</button>
-        </div>
-
-        <div class="section">Public Page Preview</div>
-        <div class="small-card">
-          <strong id="previewBusinessName">Sunshine Pressure Washing</strong>
-          <div class="mini" id="previewBusinessPhone">(954) 555-1022</div>
-          <div class="mini" id="previewMode">Quote + Estimate</div>
-        </div>
-      </div>
-    </section>
-
-    <section id="settings" class="app-tab hidden">
-      <div class="panel">
-        <h2>Settings</h2>
-        <p class="sub">Business details that power the app and the customer page.</p>
-
-        <div class="row">
-          <div>
-            <label>Business name</label>
-            <input id="bizName" value="Sunshine Pressure Washing" />
-          </div>
-          <div>
-            <label>Service type</label>
-            <select id="bizType">
-              <option>Pressure Washing</option>
-              <option>Car Detailing</option>
-              <option>Lawn Service</option>
-              <option>Handyman</option>
-              <option>Junk Removal</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div>
-            <label>Phone</label>
-            <input id="bizPhone" value="(954) 555-1022" />
-          </div>
-          <div>
-            <label>Link slug</label>
-            <input id="bizSlug" value="sunshinepressurewash" />
-          </div>
-          <div>
-            <label>Booking mode</label>
-            <select id="quoteMode">
-              <option value="both">Quote + Estimate</option>
-              <option value="quote">Instant Quote Only</option>
-              <option value="estimate">Estimate Booking Only</option>
-            </select>
-          </div>
-          <div>
-            <label>Agreement title</label>
-            <input id="agreementTitle" value="Service Agreement" />
+          <div class="btn-row">
+            <button id="saveSettingsBtn" class="primary">Save Settings</button>
+            <button id="loadDemoBtn">Load Demo</button>
           </div>
         </div>
+      </section>
+    </main>
 
-        <div class="btn-row">
-          <button class="primary" id="saveSettingsBtn">Save Settings</button>
-          <button id="loadDemoBtn">Load Demo</button>
-          <button id="clearJobsBtn">Clear Jobs</button>
-        </div>
-      </div>
-    </section>
+    <nav class="bottom-nav glass">
+      <button class="nav-btn active" data-screen="home">Home</button>
+      <button class="nav-btn" data-screen="services">Services</button>
+      <button class="nav-btn" data-screen="jobs">Jobs</button>
+      <button class="nav-btn" data-screen="link">Link</button>
+      <button class="nav-btn" data-screen="settings">Settings</button>
+    </nav>
   </div>
 
   <script src="app.js"></script>
