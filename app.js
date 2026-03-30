@@ -70,13 +70,107 @@ let state = {
   currentQuote: 0,
   currentServiceId: null,
   editingServiceId: null,
-  latestAnswers: []
+  latestAnswers: [],
+  editingDraft: null
 };
 
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return document.querySelectorAll(sel); }
 function money(n){ return "$" + Number(n || 0).toLocaleString(undefined,{maximumFractionDigits:2}); }
 function uid(prefix="id"){ return prefix + "_" + Date.now() + "_" + Math.floor(Math.random()*100000); }
+
+
+function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
+
+function syncDraftFromInputs(){
+  if(!state.editingDraft) return;
+
+  if(qs("editServiceName")) state.editingDraft.name = qs("editServiceName").value.trim() || "Untitled Service";
+  if(qs("editServiceBase")) state.editingDraft.base = parseFloat(qs("editServiceBase").value) || 0;
+  if(qs("editServiceMode")) state.editingDraft.mode = qs("editServiceMode").value;
+
+  state.editingDraft.questions = (state.editingDraft.questions || []).map(q => {
+    const labelEl = document.querySelector(`[data-q-label="${q.id}"]`);
+    const typeEl = document.querySelector(`[data-q-type="${q.id}"]`);
+    const nextType = typeEl ? typeEl.value : q.type;
+
+    let nextOptions = [];
+    if(nextType === "multiple" || nextType === "yesno"){
+      nextOptions = (q.options || []).map(opt => {
+        const key = `${q.id}__${opt.id}`;
+        const label = document.querySelector(`[data-opt-label="${key}"]`)?.value?.trim() || "Option";
+        const modifierType = document.querySelector(`[data-opt-type="${key}"]`)?.value || "fixed";
+        const modifierValue = parseFloat(document.querySelector(`[data-opt-value="${key}"]`)?.value) || 0;
+        return { ...opt, label, modifierType, modifierValue };
+      });
+    }
+
+    return {
+      ...q,
+      label: labelEl ? labelEl.value.trim() || "Question" : q.label,
+      type: nextType,
+      options: nextOptions
+    };
+  });
+}
+
+function commitDraftToState(){
+  if(!state.editingDraft || !state.editingServiceId) return;
+  const idx = state.services.findIndex(s => s.id === state.editingServiceId);
+  if(idx >= 0){
+    state.services[idx] = clone(state.editingDraft);
+  }
+  saveState();
+}
+
+function saveWorkOrder(){
+  const agreement = qs("agreementHeading")?.textContent || "Service Agreement";
+  const biz = qs("docBizName")?.textContent || "";
+  const customer = qs("docCustName")?.textContent || "";
+  const service = qs("docService")?.textContent || "";
+  const price = qs("docPrice")?.textContent || "";
+  const address = qs("docAddress")?.textContent || "";
+  const schedule = qs("docSchedule")?.textContent || "";
+  const sigData = qs("customerSig")?.toDataURL ? qs("customerSig").toDataURL("image/png") : "";
+
+  const html = `
+    <html>
+      <head>
+        <title>Work Order</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+          body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;padding:24px;color:#111827}
+          h1{margin:0 0 18px;font-size:28px}
+          .card{border:1px solid #e5e7eb;border-radius:16px;padding:18px}
+          .row{margin:10px 0}
+          .label{font-weight:700}
+          img{max-width:100%;border:1px solid #ddd;border-radius:12px;margin-top:8px}
+        </style>
+      </head>
+      <body>
+        <h1>${agreement}</h1>
+        <div class="card">
+          <div class="row"><span class="label">Business:</span> ${biz}</div>
+          <div class="row"><span class="label">Customer:</span> ${customer}</div>
+          <div class="row"><span class="label">Service:</span> ${service}</div>
+          <div class="row"><span class="label">Price / Type:</span> ${price}</div>
+          <div class="row"><span class="label">Address:</span> ${address}</div>
+          <div class="row"><span class="label">Scheduled:</span> ${schedule}</div>
+          <div class="row"><span class="label">Customer Signature:</span><br>${sigData ? `<img src="${sigData}" alt="Signature" />` : "No signature captured"}</div>
+        </div>
+        <script>window.onload = () => window.print();</script>
+      </body>
+    </html>
+  `;
+  const win = window.open("", "_blank");
+  if(!win){
+    alert("Popup blocked. Please allow popups.");
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
 
 function saveState(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -230,11 +324,12 @@ function openServiceEditor(id){
   state.editingServiceId = id;
   const service = state.services.find(s => s.id === id);
   if(!service) return;
-  qs("editorTitle").textContent = service.name || "Edit service";
-  qs("editServiceName").value = service.name;
-  qs("editServiceBase").value = service.base;
-  qs("editServiceMode").value = service.mode;
-  renderQuestionEditor(service);
+  state.editingDraft = clone(service);
+  qs("editorTitle").textContent = state.editingDraft.name || "Edit service";
+  qs("editServiceName").value = state.editingDraft.name;
+  qs("editServiceBase").value = state.editingDraft.base;
+  qs("editServiceMode").value = state.editingDraft.mode;
+  renderQuestionEditor(state.editingDraft);
   switchScreen("editor");
 }
 function ensureQuestionOptionsShape(question){
@@ -334,31 +429,32 @@ function renderQuestionEditor(service){
   `}).join("") : '<div class="question-card"><div class="mini">No questions yet. Add your first question.</div></div>';
 }
 function addQuestion(){
-  const service = state.services.find(s => s.id === state.editingServiceId);
-  if(!service) return;
-  service.questions.push({
+  if(!state.editingDraft) return;
+  syncDraftFromInputs();
+  state.editingDraft.questions.push({
     id: uid("q"),
     label: "New question",
     type: "multiple",
     options: [{id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0}]
   });
-  saveState();
-  renderQuestionEditor(service);
+  commitDraftToState();
+  renderQuestionEditor(state.editingDraft);
+  renderServicesList();
 }
 function addOption(questionId){
-  const service = state.services.find(s => s.id === state.editingServiceId);
-  if(!service) return;
-  const q = service.questions.find(x => x.id === questionId);
+  if(!state.editingDraft) return;
+  syncDraftFromInputs();
+  const q = state.editingDraft.questions.find(x => x.id === questionId);
   if(!q) return;
   q.options = q.options || [];
   q.options.push({id:uid("opt"), label:"New option", modifierType:"fixed", modifierValue:0});
-  saveState();
-  renderQuestionEditor(service);
+  commitDraftToState();
+  renderQuestionEditor(state.editingDraft);
 }
 function updateQuestionType(questionId, newType){
-  const service = state.services.find(s => s.id === state.editingServiceId);
-  if(!service) return;
-  const question = service.questions.find(q => q.id === questionId);
+  if(!state.editingDraft) return;
+  syncDraftFromInputs();
+  const question = state.editingDraft.questions.find(q => q.id === questionId);
   if(!question) return;
   question.type = newType;
   if(newType === "yesno"){
@@ -369,10 +465,10 @@ function updateQuestionType(questionId, newType){
   } else if(newType === "text" || newType === "number"){
     question.options = [];
   } else if(newType === "multiple" && (!question.options || question.options.length === 0)){
-    question.options = [{id:uid("opt"), label:"Option 1", modifierType:"fixed", modifierValue:0}];
+    question.options = [{id:uid("opt"), label:"Option 1", modifierType:"fixed",modifierValue:0}];
   }
-  saveState();
-  renderQuestionEditor(service);
+  commitDraftToState();
+  renderQuestionEditor(state.editingDraft);
 }
 function saveServiceEditor(){
   const service = state.services.find(s => s.id === state.editingServiceId);
@@ -416,6 +512,7 @@ function deleteService(){
   if(!confirm("Delete this service?")) return;
   state.services = state.services.filter(s => s.id !== state.editingServiceId);
   state.editingServiceId = null;
+  state.editingDraft = null;
   saveState();
   renderServicesList();
   renderCustomerServices();
@@ -593,9 +690,39 @@ function bindEvents(){
   if(qs("restartCustomerBtn")) qs("restartCustomerBtn").addEventListener("click", () => { goStep("customerStep1"); });
   if(qs("newTestBookingBtn")) qs("newTestBookingBtn").addEventListener("click", () => { window.location.reload(); });
   if(qs("clearCustomerSigBtn")) qs("clearCustomerSigBtn").addEventListener("click", () => clearSig("customerSig"));
+  if(qs("saveWorkOrderBtn")) qs("saveWorkOrderBtn").addEventListener("click", saveWorkOrder);
+  if(qs("saveWorkOrderBtnDone")) qs("saveWorkOrderBtnDone").addEventListener("click", saveWorkOrder);
   qsa("[data-step]").forEach(btn => btn.addEventListener("click", () => goStep(btn.dataset.step)));
 
+  ["editServiceName","editServiceBase","editServiceMode"].forEach(id => {
+    const el = qs(id);
+    if(el) el.addEventListener("input", syncDraftFromInputs);
+    if(el) el.addEventListener("change", syncDraftFromInputs);
+  });
+
+  document.addEventListener("input", (e) => {
+    if(
+      e.target.matches('[data-q-label]') ||
+      e.target.matches('[data-opt-label]') ||
+      e.target.matches('[data-opt-value]') ||
+      e.target.matches('#editServiceName') ||
+      e.target.matches('#editServiceBase')
+    ){
+      syncDraftFromInputs();
+      commitDraftToState();
+      renderServicesList();
+    }
+  });
+
   document.addEventListener("change", (e) => {
+    if(
+      e.target.matches('[data-opt-type]') ||
+      e.target.matches('#editServiceMode')
+    ){
+      syncDraftFromInputs();
+      commitDraftToState();
+      renderServicesList();
+    }
     if(e.target.matches(".q-type-select")){
       const qId = e.target.getAttribute("data-q-type");
       updateQuestionType(qId, e.target.value);
@@ -608,11 +735,12 @@ function bindEvents(){
 
     const delQ = e.target.getAttribute("data-delete-question");
     if(delQ){
-      const service = state.services.find(s => s.id === state.editingServiceId);
-      if(service){
-        service.questions = service.questions.filter(q => q.id !== delQ);
-        saveState();
-        renderQuestionEditor(service);
+      if(state.editingDraft){
+        syncDraftFromInputs();
+        state.editingDraft.questions = state.editingDraft.questions.filter(q => q.id !== delQ);
+        commitDraftToState();
+        renderQuestionEditor(state.editingDraft);
+        renderServicesList();
       }
     }
 
@@ -622,12 +750,12 @@ function bindEvents(){
     const delOptKey = e.target.getAttribute("data-delete-option");
     if(delOptKey){
       const [qId, optId] = delOptKey.split("__");
-      const service = state.services.find(s => s.id === state.editingServiceId);
-      const question = service?.questions.find(q => q.id === qId);
+      const question = state.editingDraft?.questions.find(q => q.id === qId);
       if(question){
+        syncDraftFromInputs();
         question.options = (question.options || []).filter(o => o.id !== optId);
-        saveState();
-        renderQuestionEditor(service);
+        commitDraftToState();
+        renderQuestionEditor(state.editingDraft);
       }
     }
 
