@@ -1,4 +1,4 @@
-const STORAGE_KEY = "linkflow_real_app_v2";
+const STORAGE_KEY = "linkflow_service_first_v2";
 
 const DEMO = {
   business: {
@@ -21,13 +21,12 @@ const DEMO = {
     },
     {
       id: "svc2",
-      name: "House Wash Appointment",
+      name: "House Wash",
       base: 0,
       mode: "estimate",
       questions: [
         { id:"q3", label:"House size", type:"multiple", options:[{label:"Small",price:0},{label:"Medium",price:0},{label:"Large",price:0}] },
-        { id:"q4", label:"Two-story?", type:"yesno", options:[{label:"No",price:0},{label:"Yes",price:0}] },
-        { id:"q5", label:"Gate access needed?", type:"yesno", options:[{label:"No",price:0},{label:"Yes",price:0}] }
+        { id:"q4", label:"Two-story?", type:"yesno", options:[{label:"No",price:0},{label:"Yes",price:0}] }
       ]
     }
   ],
@@ -38,12 +37,12 @@ let state = {
   business: {...DEMO.business},
   services: JSON.parse(JSON.stringify(DEMO.services)),
   jobs: [],
-  currentFlowMode: "quote",
+  currentFlowMode: null,
   currentQuote: 0,
   currentServiceId: null,
-  editingServiceId: null
+  editingServiceId: null,
+  latestAnswers: []
 };
-let latestAnswers = [];
 
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return document.querySelectorAll(sel); }
@@ -68,23 +67,35 @@ function loadState(){
     }
   }catch(e){}
 }
+async function copyLink(){
+  const link = new URL("customer.html", window.location.href).toString();
+  try{
+    await navigator.clipboard.writeText(link);
+    alert("Booking link copied.");
+  }catch(e){
+    prompt("Copy this link:", link);
+  }
+}
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
 }
-function customerUrl(){
-  return new URL("customer.html", window.location.href).toString();
+function effectiveModeForService(service){
+  if(state.business.mode === "quote") return "quote";
+  if(state.business.mode === "estimate") return "estimate";
+  return service.mode;
 }
-async function copyLink(){
-  try{
-    await navigator.clipboard.writeText(customerUrl());
-    alert("Booking link copied.");
-  }catch(e){
-    prompt("Copy this link:", customerUrl());
-  }
+function switchScreen(name){
+  qsa(".screen").forEach(s => s.classList.remove("active"));
+  const target = qs("screen-" + name);
+  if(target) target.classList.add("active");
+  qsa(".nav-btn").forEach(b => b.classList.remove("active"));
+  const activeBtn = document.querySelector('.nav-btn[data-screen="' + name + '"]');
+  if(activeBtn) activeBtn.classList.add("active");
 }
 function renderSharedBits(){
-  if(qs("bookingLinkNotice")) qs("bookingLinkNotice").textContent = customerUrl();
-  if(qs("bookingLinkNoticeLinkTab")) qs("bookingLinkNoticeLinkTab").textContent = customerUrl();
+  const link = new URL("customer.html", window.location.href).toString();
+  if(qs("bookingLinkNotice")) qs("bookingLinkNotice").textContent = link;
+  if(qs("bookingLinkNoticeLinkTab")) qs("bookingLinkNoticeLinkTab").textContent = link;
 
   if(qs("bizName")) qs("bizName").value = state.business.name;
   if(qs("bizPhone")) qs("bizPhone").value = state.business.phone;
@@ -93,13 +104,7 @@ function renderSharedBits(){
   if(qs("agreementTitle")) qs("agreementTitle").value = state.business.agreementTitle;
 
   if(qs("customerBizName")) qs("customerBizName").textContent = state.business.name;
-  if(qs("customerBizSub")){
-    qs("customerBizSub").textContent = state.business.mode === "estimate"
-      ? "Book an appointment in a few taps."
-      : state.business.mode === "quote"
-      ? "Get a quote in a few taps."
-      : "Get a quote or book an appointment in a few taps.";
-  }
+  if(qs("customerBizSub")) qs("customerBizSub").textContent = "Get a quote or book an appointment in just a few steps.";
   if(qs("agreementHeading")) qs("agreementHeading").textContent = state.business.agreementTitle;
 }
 function saveSettings(){
@@ -121,14 +126,6 @@ function loadDemo(){
   saveState();
   renderEverything();
 }
-function switchScreen(name){
-  qsa(".screen").forEach(s => s.classList.remove("active"));
-  const target = qs("screen-" + name);
-  if(target) target.classList.add("active");
-  qsa(".nav-btn").forEach(b => b.classList.remove("active"));
-  const activeBtn = document.querySelector('.nav-btn[data-screen="' + name + '"]');
-  if(activeBtn) activeBtn.classList.add("active");
-}
 function renderMetrics(){
   if(qs("mNew")) qs("mNew").textContent = state.jobs.length;
   if(qs("mScheduled")) qs("mScheduled").textContent = state.jobs.filter(j => j.status === "scheduled").length;
@@ -141,16 +138,15 @@ function renderJobs(){
   const empty = '<div class="job-card"><div class="mini">No jobs yet. Use the customer page to create a booking.</div></div>';
 
   if(recent){
-    recent.innerHTML = !state.jobs.length ? empty : state.jobs.slice(0,3).map(j => `
+    recent.innerHTML = state.jobs.length ? state.jobs.slice(0,3).map(j => `
       <div class="job-card">
         <strong>${escapeHtml(j.customer)}</strong>
         <div class="mini">${escapeHtml(j.serviceName)} · ${j.mode === "estimate" ? "Appointment" : money(j.price)} · ${escapeHtml(j.scheduleDate)} ${escapeHtml(j.scheduleTime)}</div>
       </div>
-    `).join("");
+    `).join("") : empty;
   }
-
   if(all){
-    all.innerHTML = !state.jobs.length ? empty : state.jobs.map(j => `
+    all.innerHTML = state.jobs.length ? state.jobs.map(j => `
       <div class="job-card">
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
           <div>
@@ -161,7 +157,7 @@ function renderJobs(){
           <button data-complete-job="${j.id}">Mark Complete</button>
         </div>
       </div>
-    `).join("");
+    `).join("") : empty;
   }
 }
 function clearJobs(){
@@ -172,7 +168,13 @@ function clearJobs(){
   renderJobs();
 }
 function newService(){
-  const service = { id: uid("svc"), name: "New Service", base: 0, mode: "quote", questions: [] };
+  const service = {
+    id: uid("svc"),
+    name: "New Service",
+    base: 0,
+    mode: "quote",
+    questions: []
+  };
   state.services.push(service);
   state.editingServiceId = service.id;
   saveState();
@@ -182,20 +184,18 @@ function newService(){
 function renderServicesList(){
   const box = qs("serviceList");
   if(!box) return;
-  box.innerHTML = !state.services.length
-    ? '<div class="service-card"><div class="mini">No services yet.</div></div>'
-    : state.services.map(s => `
-      <div class="service-card">
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-          <div>
-            <strong>${escapeHtml(s.name)}</strong>
-            <div class="mini">${s.mode === "quote" ? "Get Quote" : "Book Appointment"} · Base ${money(s.base)}</div>
-            <div class="mini">${s.questions.length} question${s.questions.length === 1 ? "" : "s"}</div>
-          </div>
-          <button data-edit-service="${s.id}">Edit</button>
+  box.innerHTML = state.services.length ? state.services.map(s => `
+    <div class="service-card">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+        <div>
+          <strong>${escapeHtml(s.name)}</strong>
+          <div class="mini">${effectiveModeForService(s) === "quote" ? "Get Quote" : "Book Appointment"} · Base ${money(s.base)}</div>
+          <div class="mini">${s.questions.length} question${s.questions.length === 1 ? "" : "s"}</div>
         </div>
+        <button data-edit-service="${s.id}">Edit</button>
       </div>
-    `).join("");
+    </div>
+  `).join("") : '<div class="service-card"><div class="mini">No services yet.</div></div>';
 }
 function openServiceEditor(id){
   state.editingServiceId = id;
@@ -212,44 +212,42 @@ function serializeOptions(q){
   if(q.type === "text" || q.type === "number") return "";
   return (q.options || []).map(o => `${o.label}|${o.price}`).join(",");
 }
+function renderQuestionEditor(service){
+  const box = qs("questionList");
+  if(!box) return;
+  box.innerHTML = service.questions.length ? service.questions.map(q => `
+    <div class="question-card">
+      <div class="row-compact">
+        <div>
+          <label>Question label</label>
+          <input data-q-label="${q.id}" value="${escapeHtml(q.label)}" />
+        </div>
+        <div>
+          <label>Question type</label>
+          <select data-q-type="${q.id}">
+            <option value="multiple" ${q.type==="multiple"?"selected":""}>Multiple Choice</option>
+            <option value="yesno" ${q.type==="yesno"?"selected":""}>Yes / No</option>
+            <option value="text" ${q.type==="text"?"selected":""}>Text Input</option>
+            <option value="number" ${q.type==="number"?"selected":""}>Number Input</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt12">
+        <label>Options / pricing</label>
+        <input data-q-options="${q.id}" value="${escapeHtml(serializeOptions(q))}" placeholder="Small|0,Medium|30,Large|60" />
+      </div>
+      <div class="btn-row">
+        <button data-delete-question="${q.id}" class="danger-btn">Delete Question</button>
+      </div>
+    </div>
+  `).join("") : '<div class="question-card"><div class="mini">No questions yet. Add your first question.</div></div>';
+}
 function parseOptions(raw, type){
   if(type === "text" || type === "number") return [];
   return (raw || "").split(",").map(part => {
     const bits = part.split("|");
     return { label:(bits[0] || "").trim(), price: parseFloat(bits[1]) || 0 };
   }).filter(x => x.label);
-}
-function renderQuestionEditor(service){
-  const box = qs("questionList");
-  if(!box) return;
-  box.innerHTML = !service.questions.length
-    ? '<div class="question-card"><div class="mini">No questions yet. Add your first question.</div></div>'
-    : service.questions.map(q => `
-      <div class="question-card">
-        <div class="row-compact">
-          <div>
-            <label>Question label</label>
-            <input data-q-label="${q.id}" value="${escapeHtml(q.label)}" />
-          </div>
-          <div>
-            <label>Question type</label>
-            <select data-q-type="${q.id}">
-              <option value="multiple" ${q.type==="multiple"?"selected":""}>Multiple Choice</option>
-              <option value="yesno" ${q.type==="yesno"?"selected":""}>Yes / No</option>
-              <option value="text" ${q.type==="text"?"selected":""}>Text Input</option>
-              <option value="number" ${q.type==="number"?"selected":""}>Number Input</option>
-            </select>
-          </div>
-        </div>
-        <div class="mt12">
-          <label>Options / pricing</label>
-          <input data-q-options="${q.id}" value="${serializeOptions(q)}" placeholder="Small|0,Medium|30,Large|60" />
-        </div>
-        <div class="btn-row">
-          <button data-delete-question="${q.id}" class="danger-btn">Delete Question</button>
-        </div>
-      </div>
-    `).join("");
 }
 function addQuestion(){
   const service = state.services.find(s => s.id === state.editingServiceId);
@@ -269,6 +267,7 @@ function saveServiceEditor(){
   service.name = qs("editServiceName").value.trim() || "Untitled Service";
   service.base = parseFloat(qs("editServiceBase").value) || 0;
   service.mode = qs("editServiceMode").value;
+
   service.questions = service.questions.map(q => {
     const labelEl = document.querySelector(`[data-q-label="${q.id}"]`);
     const typeEl = document.querySelector(`[data-q-type="${q.id}"]`);
@@ -281,6 +280,7 @@ function saveServiceEditor(){
       options: parseOptions(optsEl ? optsEl.value : "", type)
     };
   });
+
   saveState();
   renderServicesList();
   renderCustomerServices();
@@ -303,9 +303,6 @@ function renderCustomerServices(){
   select.innerHTML = state.services.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
   if(state.services[0]) state.currentServiceId = state.services[0].id;
   renderCustomerQuestions();
-
-  if(qs("startQuoteBtn")) qs("startQuoteBtn").classList.toggle("hidden", state.business.mode === "estimate");
-  if(qs("startEstimateBtn")) qs("startEstimateBtn").classList.toggle("hidden", state.business.mode === "quote");
 }
 function renderCustomerQuestions(){
   const select = qs("custService");
@@ -323,31 +320,12 @@ function renderCustomerQuestions(){
     if(q.type === "number"){
       return `<div class="question-card"><label>${escapeHtml(q.label)}</label><input id="cq_${idx}" data-type="number" type="number" placeholder="Enter number" /></div>`;
     }
-    return `<div class="question-card"><label>${escapeHtml(q.label)}</label><select id="cq_${idx}" data-type="${q.type}">${(q.options || []).map((opt, oi) => `<option value="${oi}">${escapeHtml(opt.label)}</option>`).join("")}</select></div>`;
+    return `<div class="question-card"><label>${escapeHtml(q.label)}</label><select id="cq_${idx}" data-type="${q.type}">${(q.options||[]).map((opt,oi)=>`<option value="${oi}">${escapeHtml(opt.label)}</option>`).join("")}</select></div>`;
   }).join("");
-}
-function setCustomerModeUI(mode){
-  const chip = qs("stepModeChip");
-  const copy = qs("stepModeCopy");
-  if(!chip || !copy) return;
-  if(mode === "estimate"){
-    chip.textContent = "Appointment Mode";
-    copy.textContent = "Choose your service and request a scheduled appointment.";
-  } else {
-    chip.textContent = "Quote Mode";
-    copy.textContent = "Choose your service and get an instant quote first.";
-  }
 }
 function goStep(id){
   qsa(".step").forEach(s => s.classList.remove("active"));
   if(qs(id)) qs(id).classList.add("active");
-}
-function startCustomerFlow(mode){
-  state.currentFlowMode = mode;
-  setCustomerModeUI(mode);
-  goStep("customerStep1");
-  const target = qs("customerStep1");
-  if(target) target.scrollIntoView({behavior:"smooth", block:"start"});
 }
 function collectAnswersAndPrice(svc){
   let total = svc.base || 0;
@@ -374,53 +352,51 @@ function collectAnswersAndPrice(svc){
 function continueCustomerResult(){
   const svc = state.services.find(x => x.id === qs("custService").value);
   if(!svc) return;
+  const mode = effectiveModeForService(svc);
   const result = collectAnswersAndPrice(svc);
-  latestAnswers = result.answers;
-  const resultMode = state.currentFlowMode === "estimate" || svc.mode === "estimate" ? "estimate" : "quote";
+  state.latestAnswers = result.answers;
+  state.currentFlowMode = mode;
   state.currentQuote = result.total;
 
-  qs("resultTitle").textContent = resultMode === "estimate" ? "Appointment Request" : "Your Quote";
-  qs("quotePrice").textContent = resultMode === "estimate" ? "Book" : money(result.total);
-  qs("quoteBreakdown").textContent = resultMode === "estimate" ? "Choose a time for your appointment." : result.parts.join(" · ");
-
-  const continueBtn = qs("continueScheduleBtn");
-  if(continueBtn) continueBtn.textContent = resultMode === "estimate" ? "Book Appointment" : "Accept & Schedule";
-
+  qs("resultTitle").textContent = mode === "estimate" ? "Book Appointment" : "Your Quote";
+  qs("quotePrice").textContent = mode === "estimate" ? "Appointment" : money(result.total);
+  qs("quoteBreakdown").textContent = mode === "estimate" ? "This service is booked by appointment. Choose a time to continue." : result.parts.join(" · ");
+  qs("continueScheduleBtn").textContent = mode === "estimate" ? "Book Appointment" : "Accept & Schedule";
   goStep("customerStep2");
 }
 function continueAgreement(){
   const svc = state.services.find(x => x.id === qs("custService").value);
-  const isEstimate = state.currentFlowMode === "estimate" || (svc && svc.mode === "estimate");
+  const mode = effectiveModeForService(svc);
   qs("agreementHeading").textContent = state.business.agreementTitle;
   qs("docBizName").textContent = state.business.name;
   qs("docCustName").textContent = qs("custName").value || "Customer";
   qs("docService").textContent = svc ? svc.name : "";
-  qs("docPrice").textContent = isEstimate ? "Appointment Request" : money(state.currentQuote);
+  qs("docPrice").textContent = mode === "estimate" ? "Appointment Request" : money(state.currentQuote);
   qs("docAddress").textContent = qs("custAddress").value || "";
   qs("docSchedule").textContent = `${qs("scheduleDate").value} · ${qs("scheduleTime").value}`;
   goStep("customerStep4");
 }
 function finishBooking(){
   const svc = state.services.find(x => x.id === qs("custService").value);
-  const isEstimate = state.currentFlowMode === "estimate" || (svc && svc.mode === "estimate");
+  const mode = effectiveModeForService(svc);
   const job = {
     id: uid("job"),
     customer: qs("custName").value || "Customer",
     phone: qs("custPhone").value || "",
     address: qs("custAddress").value || "",
     serviceName: svc ? svc.name : "",
-    mode: isEstimate ? "estimate" : "quote",
-    price: isEstimate ? null : state.currentQuote,
+    mode,
+    price: mode === "estimate" ? null : state.currentQuote,
     scheduleDate: qs("scheduleDate").value,
     scheduleTime: qs("scheduleTime").value,
     status: "scheduled",
-    answers: latestAnswers
+    answers: state.latestAnswers || []
   };
   state.jobs.unshift(job);
   saveState();
   renderMetrics();
   renderJobs();
-  qs("confirmText").textContent = `${job.serviceName} · ${isEstimate ? "Appointment" : money(job.price)} · ${job.scheduleDate} ${job.scheduleTime}`;
+  qs("confirmText").textContent = `${job.serviceName} · ${mode === "estimate" ? "Appointment" : money(job.price)} · ${job.scheduleDate} ${job.scheduleTime}`;
   goStep("customerStep5");
 }
 function initSignature(id){
@@ -458,32 +434,27 @@ function clearSig(id){
 }
 function bindEvents(){
   qsa(".nav-btn").forEach(btn => btn.addEventListener("click", () => switchScreen(btn.dataset.screen)));
-
   if(qs("copyBookingLinkBtn")) qs("copyBookingLinkBtn").addEventListener("click", copyLink);
   if(qs("copyBookingLinkBtn2")) qs("copyBookingLinkBtn2").addEventListener("click", copyLink);
   if(qs("openBookingPageBtn")) qs("openBookingPageBtn").addEventListener("click", () => window.location.href = "customer.html");
   if(qs("openBookingPageBtn2")) qs("openBookingPageBtn2").addEventListener("click", () => window.location.href = "customer.html");
-
   if(qs("saveSettingsBtn")) qs("saveSettingsBtn").addEventListener("click", saveSettings);
   if(qs("loadDemoBtn")) qs("loadDemoBtn").addEventListener("click", loadDemo);
-
   if(qs("newServiceBtn")) qs("newServiceBtn").addEventListener("click", newService);
   if(qs("backToServicesBtn")) qs("backToServicesBtn").addEventListener("click", () => switchScreen("services"));
   if(qs("addQuestionBtn")) qs("addQuestionBtn").addEventListener("click", addQuestion);
   if(qs("saveServiceBtn")) qs("saveServiceBtn").addEventListener("click", saveServiceEditor);
   if(qs("deleteServiceBtn")) qs("deleteServiceBtn").addEventListener("click", deleteService);
+  if(qs("clearJobsBtn")) qs("clearJobsBtn").addEventListener("click", clearJobs);
 
   if(qs("custService")) qs("custService").addEventListener("change", renderCustomerQuestions);
-  if(qs("startQuoteBtn")) qs("startQuoteBtn").addEventListener("click", () => startCustomerFlow("quote"));
-  if(qs("startEstimateBtn")) qs("startEstimateBtn").addEventListener("click", () => startCustomerFlow("estimate"));
   if(qs("continueCustomerBtn")) qs("continueCustomerBtn").addEventListener("click", continueCustomerResult);
   if(qs("continueScheduleBtn")) qs("continueScheduleBtn").addEventListener("click", () => goStep("customerStep3"));
   if(qs("continueAgreementBtn")) qs("continueAgreementBtn").addEventListener("click", continueAgreement);
   if(qs("finishBookingBtn")) qs("finishBookingBtn").addEventListener("click", finishBooking);
-  if(qs("restartCustomerBtn")) qs("restartCustomerBtn").addEventListener("click", () => window.location.reload());
-  if(qs("newTestBookingBtn")) qs("newTestBookingBtn").addEventListener("click", () => window.location.reload());
+  if(qs("restartCustomerBtn")) qs("restartCustomerBtn").addEventListener("click", () => { goStep("customerStep1"); });
+  if(qs("newTestBookingBtn")) qs("newTestBookingBtn").addEventListener("click", () => { window.location.reload(); });
   if(qs("clearCustomerSigBtn")) qs("clearCustomerSigBtn").addEventListener("click", () => clearSig("customerSig"));
-
   qsa("[data-step]").forEach(btn => btn.addEventListener("click", () => goStep(btn.dataset.step)));
 
   document.addEventListener("click", (e) => {
@@ -509,8 +480,6 @@ function bindEvents(){
       renderJobs();
     }
   });
-
-  if(qs("clearJobsBtn")) qs("clearJobsBtn").addEventListener("click", clearJobs);
 }
 function renderEverything(){
   renderSharedBits();
