@@ -36,7 +36,17 @@
           <div class="metric-card glass"><div class="metric-k">Quoted Jobs</div><div class="metric-v" id="mQuoted">0</div></div>
         </div>
 
-        <div class="section-title">Recent Jobs</div>
+        <div class="section-head">
+          <div>
+            <div class="section-title" style="margin:0">Recent Jobs</div>
+          </div>
+          <select id="homeStatusFilter" class="small-select">
+            <option value="scheduled">Pending Orders</option>
+            <option value="completed">Completed Orders</option>
+            <option value="canceled">Canceled Orders</option>
+            <option value="all">All Orders</option>
+          </select>
+        </div>
         <div id="recentJobs" class="stack"></div>
       </section>
 
@@ -150,5 +160,52 @@
   </div>
 
   <script type="module" src="app.js"></script>
+
+  <div id="jobDetailModal" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal="jobDetailModal"></div>
+    <div class="modal-panel glass">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Job Details</div>
+          <h2 id="jobDetailTitle">Order</h2>
+        </div>
+        <button data-close-modal="jobDetailModal" class="small-btn">Close</button>
+      </div>
+
+      <div class="stack">
+        <div class="job-card">
+          <div class="mini"><strong>Date</strong></div>
+          <div id="jobDetailDate"></div>
+        </div>
+        <div class="job-card">
+          <div class="mini"><strong>Customer</strong></div>
+          <div id="jobDetailCustomer"></div>
+          <div class="mini" id="jobDetailPhone"></div>
+          <div class="mini" id="jobDetailAddress"></div>
+        </div>
+        <div class="job-card">
+          <div class="mini"><strong>Service</strong></div>
+          <div id="jobDetailService"></div>
+          <div class="mini" id="jobDetailPrice"></div>
+          <div class="mini" id="jobDetailStatus"></div>
+        </div>
+        <div class="job-card">
+          <div class="mini"><strong>Answers</strong></div>
+          <div id="jobDetailAnswers" class="mini"></div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button id="jobCallBtn" class="primary">Call Customer</button>
+        <button id="jobTextBtn">Text Customer</button>
+        <button id="jobConfirmTextBtn">Send Booking Text</button>
+        <button id="jobViewAgreementBtn">View Agreement</button>
+        <button id="jobPrintAgreementBtn">Save / Print</button>
+        <button id="jobCompleteBtn">Mark Complete</button>
+        <button id="jobCancelBtn" class="danger-btn">Mark Canceled</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
