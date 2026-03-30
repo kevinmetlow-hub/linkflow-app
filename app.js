@@ -71,7 +71,9 @@ let state = {
   currentServiceId: null,
   editingServiceId: null,
   latestAnswers: [],
-  editingDraft: null
+  editingDraft: null,
+  activeJobId: null,
+  homeStatusFilter: "scheduled"
 };
 
 function qs(id){ return document.getElementById(id); }
@@ -288,22 +290,125 @@ function printAgreement(jobId){
   openAgreementHtml(job.agreementHtml, true);
 }
 
+
+function formatDisplayDate(dateStr, timeWindow){
+  if(!dateStr) return timeWindow || "";
+  const d = new Date(dateStr + "T12:00:00");
+  if(isNaN(d)) return `${dateStr}${timeWindow ? " · " + timeWindow : ""}`;
+  const formatted = d.toLocaleDateString("en-US", {
+    month:"short",
+    day:"numeric",
+    year:"numeric"
+  });
+  return `${formatted}${timeWindow ? " · " + timeWindow : ""}`;
+}
+
+function normalizeScheduleDate(label){
+  if(!label) return "";
+  const today = new Date();
+  const copy = new Date(today);
+  const lower = String(label).toLowerCase();
+
+  if(lower === "tomorrow"){
+    copy.setDate(copy.getDate()+1);
+  } else if(lower === "this friday"){
+    const day = copy.getDay();
+    const diff = (5 - day + 7) % 7 || 7;
+    copy.setDate(copy.getDate()+diff);
+  } else if(lower === "this saturday"){
+    const day = copy.getDay();
+    const diff = (6 - day + 7) % 7 || 7;
+    copy.setDate(copy.getDate()+diff);
+  } else {
+    return label;
+  }
+  return copy.toISOString().slice(0,10);
+}
+
+function statusLabel(status){
+  if(status === "completed") return "Completed";
+  if(status === "canceled") return "Canceled";
+  return "Pending";
+}
+
+function openModal(id){
+  const el = qs(id);
+  if(el) el.classList.remove("hidden");
+}
+function closeModal(id){
+  const el = qs(id);
+  if(el) el.classList.add("hidden");
+}
+
+function smsBodyForJob(job, kind){
+  const dateText = formatDisplayDate(job.scheduleDate, job.scheduleTime);
+  if(kind === "confirm"){
+    return `Hi ${job.customer}, your ${job.serviceName} is booked for ${dateText}. Reply here with any questions.`;
+  }
+  return `Hi ${job.customer}, regarding your ${job.serviceName} booked for ${dateText}.`;
+}
+
+function openSmsForJob(job, kind="general"){
+  if(!job?.phone){
+    alert("This job has no phone number.");
+    return;
+  }
+  const body = encodeURIComponent(smsBodyForJob(job, kind));
+  window.location.href = `sms:${job.phone}&body=${body}`;
+}
+
+function openCallForJob(job){
+  if(!job?.phone){
+    alert("This job has no phone number.");
+    return;
+  }
+  window.location.href = `tel:${job.phone}`;
+}
+
+function openJobDetails(jobId){
+  const job = state.jobs.find(j => j.id === jobId);
+  if(!job) return;
+  state.activeJobId = jobId;
+  if(qs("jobDetailTitle")) qs("jobDetailTitle").textContent = job.customer || "Order";
+  if(qs("jobDetailDate")) qs("jobDetailDate").textContent = formatDisplayDate(job.scheduleDate, job.scheduleTime);
+  if(qs("jobDetailCustomer")) qs("jobDetailCustomer").textContent = job.customer || "";
+  if(qs("jobDetailPhone")) qs("jobDetailPhone").textContent = job.phone || "";
+  if(qs("jobDetailAddress")) qs("jobDetailAddress").textContent = job.address || "";
+  if(qs("jobDetailService")) qs("jobDetailService").textContent = job.serviceName || "";
+  if(qs("jobDetailPrice")) qs("jobDetailPrice").textContent = job.mode === "estimate" ? "Appointment" : money(job.price);
+  if(qs("jobDetailStatus")) qs("jobDetailStatus").textContent = statusLabel(job.status);
+  if(qs("jobDetailAnswers")) qs("jobDetailAnswers").innerHTML = (job.answers || []).length
+    ? job.answers.map(a => `<div>${a.question}: ${a.answer}</div>`).join("")
+    : "No saved answers.";
+  openModal("jobDetailModal");
+}
+
 function renderMetrics(){
   if(qs("mNew")) qs("mNew").textContent = state.jobs.length;
   if(qs("mScheduled")) qs("mScheduled").textContent = state.jobs.filter(j => j.status === "scheduled").length;
   if(qs("mCompleted")) qs("mCompleted").textContent = state.jobs.filter(j => j.status === "completed").length;
   if(qs("mQuoted")) qs("mQuoted").textContent = state.jobs.filter(j => j.mode === "quote").length;
 }
+
 function renderJobs(){
   const recent = qs("recentJobs");
   const all = qs("jobList");
   const empty = '<div class="job-card"><div class="mini">No jobs yet. Use the customer page to create a booking.</div></div>';
+  const filter = qs("homeStatusFilter")?.value || state.homeStatusFilter || "scheduled";
+  state.homeStatusFilter = filter;
+
+  const filteredJobs = filter === "all" ? state.jobs : state.jobs.filter(j => (j.status || "scheduled") === filter);
 
   if(recent){
-    recent.innerHTML = state.jobs.length ? state.jobs.slice(0,3).map(j => `
+    recent.innerHTML = filteredJobs.length ? filteredJobs.slice(0,6).map(j => `
       <div class="job-card">
-        <strong>${escapeHtml(j.customer)}</strong>
-        <div class="mini">${escapeHtml(j.serviceName)} · ${j.mode === "estimate" ? "Appointment" : money(j.price)} · ${escapeHtml(j.scheduleDate)} ${escapeHtml(j.scheduleTime)}</div>
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div>
+            <strong>${escapeHtml(j.customer)}</strong> <span class="chip">${statusLabel(j.status || "scheduled")}</span>
+            <div class="mini">${escapeHtml(j.serviceName)} · ${j.mode === "estimate" ? "Appointment" : money(j.price)} · ${escapeHtml(formatDisplayDate(j.scheduleDate, j.scheduleTime))}</div>
+          </div>
+          <button data-open-job="${j.id}">Open</button>
+        </div>
       </div>
     `).join("") : empty;
   }
@@ -312,11 +417,12 @@ function renderJobs(){
       <div class="job-card">
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
           <div>
-            <strong>${escapeHtml(j.customer)}</strong> <span class="chip">${j.mode === "estimate" ? "Appointment" : "Quote"}</span>
-            <div class="mini">${escapeHtml(j.serviceName)} · ${j.mode === "estimate" ? "Appointment" : money(j.price)} · ${escapeHtml(j.scheduleDate)} ${escapeHtml(j.scheduleTime)}</div>
+            <strong>${escapeHtml(j.customer)}</strong> <span class="chip">${statusLabel(j.status || "scheduled")}</span>
+            <div class="mini">${escapeHtml(j.serviceName)} · ${j.mode === "estimate" ? "Appointment" : money(j.price)} · ${escapeHtml(formatDisplayDate(j.scheduleDate, j.scheduleTime))}</div>
             <div class="mini">${escapeHtml(j.address)} · ${escapeHtml(j.phone)}</div>
           </div>
           <div class="btn-row" style="margin-top:0">
+            <button data-open-job="${j.id}">Open</button>
             <button data-view-agreement="${j.id}">View Agreement</button>
             <button data-print-agreement="${j.id}">Save / Print</button>
             <button data-complete-job="${j.id}">Mark Complete</button>
@@ -326,6 +432,7 @@ function renderJobs(){
     `).join("") : empty;
   }
 }
+
 function clearJobs(){
   if(!confirm("Clear all jobs?")) return;
   state.jobs = [];
@@ -651,7 +758,7 @@ function continueAgreement(){
   qs("docService").textContent = svc ? svc.name : "";
   qs("docPrice").textContent = mode === "estimate" ? "Appointment Request" : money(state.currentQuote);
   qs("docAddress").textContent = qs("custAddress").value || "";
-  qs("docSchedule").textContent = `${qs("scheduleDate").value} · ${qs("scheduleTime").value}`;
+  qs("docSchedule").textContent = formatDisplayDate(normalizeScheduleDate(qs("scheduleDate").value), qs("scheduleTime").value);
   goStep("customerStep4");
 }
 function finishBooking(){
@@ -664,7 +771,7 @@ function finishBooking(){
     service: svc ? svc.name : "",
     priceType: mode === "estimate" ? "Appointment Request" : money(state.currentQuote),
     address: qs("custAddress").value || "",
-    schedule: `${qs("scheduleDate").value} · ${qs("scheduleTime").value}`,
+    schedule: `${formatDisplayDate(normalizeScheduleDate(qs("scheduleDate").value), qs("scheduleTime").value)}`,
     signatureData: qs("customerSig")?.toDataURL ? qs("customerSig").toDataURL("image/png") : ""
   };
 
@@ -676,7 +783,7 @@ function finishBooking(){
     serviceName: svc ? svc.name : "",
     mode,
     price: mode === "estimate" ? null : state.currentQuote,
-    scheduleDate: qs("scheduleDate").value,
+    scheduleDate: normalizeScheduleDate(qs("scheduleDate").value),
     scheduleTime: qs("scheduleTime").value,
     status: "scheduled",
     answers: state.latestAnswers || [],
@@ -686,7 +793,7 @@ function finishBooking(){
   saveState();
   renderMetrics();
   renderJobs();
-  qs("confirmText").textContent = `${job.serviceName} · ${mode === "estimate" ? "Appointment" : money(job.price)} · ${job.scheduleDate} ${job.scheduleTime}`;
+  qs("confirmText").textContent = `${job.serviceName} · ${mode === "estimate" ? "Appointment" : money(job.price)} · ${formatDisplayDate(job.scheduleDate, job.scheduleTime)}`;
   goStep("customerStep5");
 }
 function initSignature(id){
@@ -736,6 +843,35 @@ function bindEvents(){
   if(qs("saveServiceBtn")) qs("saveServiceBtn").addEventListener("click", saveServiceEditor);
   if(qs("deleteServiceBtn")) qs("deleteServiceBtn").addEventListener("click", deleteService);
   if(qs("clearJobsBtn")) qs("clearJobsBtn").addEventListener("click", clearJobs);
+  if(qs("homeStatusFilter")) qs("homeStatusFilter").addEventListener("change", renderJobs);
+  document.querySelectorAll("[data-close-modal]").forEach(el => el.addEventListener("click", () => closeModal(el.getAttribute("data-close-modal"))));
+
+  if(qs("jobCallBtn")) qs("jobCallBtn").addEventListener("click", () => {
+    const job = state.jobs.find(j => j.id === state.activeJobId);
+    openCallForJob(job);
+  });
+  if(qs("jobTextBtn")) qs("jobTextBtn").addEventListener("click", () => {
+    const job = state.jobs.find(j => j.id === state.activeJobId);
+    openSmsForJob(job, "general");
+  });
+  if(qs("jobConfirmTextBtn")) qs("jobConfirmTextBtn").addEventListener("click", () => {
+    const job = state.jobs.find(j => j.id === state.activeJobId);
+    openSmsForJob(job, "confirm");
+  });
+  if(qs("jobViewAgreementBtn")) qs("jobViewAgreementBtn").addEventListener("click", () => {
+    if(state.activeJobId) viewAgreement(state.activeJobId);
+  });
+  if(qs("jobPrintAgreementBtn")) qs("jobPrintAgreementBtn").addEventListener("click", () => {
+    if(state.activeJobId) printAgreement(state.activeJobId);
+  });
+  if(qs("jobCompleteBtn")) qs("jobCompleteBtn").addEventListener("click", () => {
+    const job = state.jobs.find(j => j.id === state.activeJobId);
+    if(job){ job.status = "completed"; saveState(); renderMetrics(); renderJobs(); openJobDetails(job.id); }
+  });
+  if(qs("jobCancelBtn")) qs("jobCancelBtn").addEventListener("click", () => {
+    const job = state.jobs.find(j => j.id === state.activeJobId);
+    if(job){ job.status = "canceled"; saveState(); renderMetrics(); renderJobs(); openJobDetails(job.id); }
+  });
 
   if(qs("custService")) qs("custService").addEventListener("change", renderCustomerQuestions);
   if(qs("continueCustomerBtn")) qs("continueCustomerBtn").addEventListener("click", continueCustomerResult);
@@ -812,6 +948,11 @@ function bindEvents(){
         commitDraftToState();
         renderQuestionEditor(state.editingDraft);
       }
+    }
+
+    const openId = e.target.getAttribute("data-open-job");
+    if(openId){
+      openJobDetails(openId);
     }
 
     const viewId = e.target.getAttribute("data-view-agreement");
