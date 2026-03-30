@@ -124,52 +124,18 @@ function commitDraftToState(){
 }
 
 function saveWorkOrder(){
-  const agreement = qs("agreementHeading")?.textContent || "Service Agreement";
-  const biz = qs("docBizName")?.textContent || "";
-  const customer = qs("docCustName")?.textContent || "";
-  const service = qs("docService")?.textContent || "";
-  const price = qs("docPrice")?.textContent || "";
-  const address = qs("docAddress")?.textContent || "";
-  const schedule = qs("docSchedule")?.textContent || "";
-  const sigData = qs("customerSig")?.toDataURL ? qs("customerSig").toDataURL("image/png") : "";
-
-  const html = `
-    <html>
-      <head>
-        <title>Work Order</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <style>
-          body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;padding:24px;color:#111827}
-          h1{margin:0 0 18px;font-size:28px}
-          .card{border:1px solid #e5e7eb;border-radius:16px;padding:18px}
-          .row{margin:10px 0}
-          .label{font-weight:700}
-          img{max-width:100%;border:1px solid #ddd;border-radius:12px;margin-top:8px}
-        </style>
-      </head>
-      <body>
-        <h1>${agreement}</h1>
-        <div class="card">
-          <div class="row"><span class="label">Business:</span> ${biz}</div>
-          <div class="row"><span class="label">Customer:</span> ${customer}</div>
-          <div class="row"><span class="label">Service:</span> ${service}</div>
-          <div class="row"><span class="label">Price / Type:</span> ${price}</div>
-          <div class="row"><span class="label">Address:</span> ${address}</div>
-          <div class="row"><span class="label">Scheduled:</span> ${schedule}</div>
-          <div class="row"><span class="label">Customer Signature:</span><br>${sigData ? `<img src="${sigData}" alt="Signature" />` : "No signature captured"}</div>
-        </div>
-        <script>window.onload = () => window.print();</script>
-      </body>
-    </html>
-  `;
-  const win = window.open("", "_blank");
-  if(!win){
-    alert("Popup blocked. Please allow popups.");
-    return;
-  }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
+  const data = {
+    agreementTitle: qs("agreementHeading")?.textContent || "Service Agreement",
+    business: qs("docBizName")?.textContent || "",
+    customer: qs("docCustName")?.textContent || "",
+    service: qs("docService")?.textContent || "",
+    priceType: qs("docPrice")?.textContent || "",
+    address: qs("docAddress")?.textContent || "",
+    schedule: qs("docSchedule")?.textContent || "",
+    signatureData: qs("customerSig")?.toDataURL ? qs("customerSig").toDataURL("image/png") : ""
+  };
+  const html = buildWorkOrderHtmlFromData(data);
+  openAgreementHtml(html, true);
 }
 
 function saveState(){
@@ -249,6 +215,79 @@ function loadDemo(){
   saveState();
   renderEverything();
 }
+
+function buildWorkOrderHtmlFromData(data){
+  const agreement = data.agreementTitle || "Service Agreement";
+  const biz = data.business || "";
+  const customer = data.customer || "";
+  const service = data.service || "";
+  const price = data.priceType || "";
+  const address = data.address || "";
+  const schedule = data.schedule || "";
+  const sigData = data.signatureData || "";
+
+  return `
+    <html>
+      <head>
+        <title>Work Order</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+          body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;padding:24px;color:#111827}
+          h1{margin:0 0 18px;font-size:28px}
+          .card{border:1px solid #e5e7eb;border-radius:16px;padding:18px}
+          .row{margin:10px 0}
+          .label{font-weight:700}
+          img{max-width:100%;border:1px solid #ddd;border-radius:12px;margin-top:8px}
+        </style>
+      </head>
+      <body>
+        <h1>${agreement}</h1>
+        <div class="card">
+          <div class="row"><span class="label">Business:</span> ${biz}</div>
+          <div class="row"><span class="label">Customer:</span> ${customer}</div>
+          <div class="row"><span class="label">Service:</span> ${service}</div>
+          <div class="row"><span class="label">Price / Type:</span> ${price}</div>
+          <div class="row"><span class="label">Address:</span> ${address}</div>
+          <div class="row"><span class="label">Scheduled:</span> ${schedule}</div>
+          <div class="row"><span class="label">Customer Signature:</span><br>${sigData ? `<img src="${sigData}" alt="Signature" />` : "No signature captured"}</div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+function openAgreementHtml(html, shouldPrint=false){
+  const win = window.open("", "_blank");
+  if(!win){
+    alert("Popup blocked. Please allow popups.");
+    return;
+  }
+  const finalHtml = shouldPrint
+    ? html.replace("</body>", "<script>window.onload = () => window.print();</script></body>")
+    : html;
+  win.document.open();
+  win.document.write(finalHtml);
+  win.document.close();
+}
+
+function viewAgreement(jobId){
+  const job = state.jobs.find(j => j.id === jobId);
+  if(!job || !job.agreementHtml){
+    alert("No saved agreement found for this job.");
+    return;
+  }
+  openAgreementHtml(job.agreementHtml, false);
+}
+
+function printAgreement(jobId){
+  const job = state.jobs.find(j => j.id === jobId);
+  if(!job || !job.agreementHtml){
+    alert("No saved agreement found for this job.");
+    return;
+  }
+  openAgreementHtml(job.agreementHtml, true);
+}
+
 function renderMetrics(){
   if(qs("mNew")) qs("mNew").textContent = state.jobs.length;
   if(qs("mScheduled")) qs("mScheduled").textContent = state.jobs.filter(j => j.status === "scheduled").length;
@@ -277,7 +316,11 @@ function renderJobs(){
             <div class="mini">${escapeHtml(j.serviceName)} · ${j.mode === "estimate" ? "Appointment" : money(j.price)} · ${escapeHtml(j.scheduleDate)} ${escapeHtml(j.scheduleTime)}</div>
             <div class="mini">${escapeHtml(j.address)} · ${escapeHtml(j.phone)}</div>
           </div>
-          <button data-complete-job="${j.id}">Mark Complete</button>
+          <div class="btn-row" style="margin-top:0">
+            <button data-view-agreement="${j.id}">View Agreement</button>
+            <button data-print-agreement="${j.id}">Save / Print</button>
+            <button data-complete-job="${j.id}">Mark Complete</button>
+          </div>
         </div>
       </div>
     `).join("") : empty;
@@ -614,6 +657,17 @@ function continueAgreement(){
 function finishBooking(){
   const svc = state.services.find(x => x.id === qs("custService").value);
   const mode = effectiveModeForService(svc);
+  const agreementData = {
+    agreementTitle: state.business.agreementTitle,
+    business: state.business.name,
+    customer: qs("custName").value || "Customer",
+    service: svc ? svc.name : "",
+    priceType: mode === "estimate" ? "Appointment Request" : money(state.currentQuote),
+    address: qs("custAddress").value || "",
+    schedule: `${qs("scheduleDate").value} · ${qs("scheduleTime").value}`,
+    signatureData: qs("customerSig")?.toDataURL ? qs("customerSig").toDataURL("image/png") : ""
+  };
+
   const job = {
     id: uid("job"),
     customer: qs("custName").value || "Customer",
@@ -625,7 +679,8 @@ function finishBooking(){
     scheduleDate: qs("scheduleDate").value,
     scheduleTime: qs("scheduleTime").value,
     status: "scheduled",
-    answers: state.latestAnswers || []
+    answers: state.latestAnswers || [],
+    agreementHtml: buildWorkOrderHtmlFromData(agreementData)
   };
   state.jobs.unshift(job);
   saveState();
@@ -757,6 +812,16 @@ function bindEvents(){
         commitDraftToState();
         renderQuestionEditor(state.editingDraft);
       }
+    }
+
+    const viewId = e.target.getAttribute("data-view-agreement");
+    if(viewId){
+      viewAgreement(viewId);
+    }
+
+    const printId = e.target.getAttribute("data-print-agreement");
+    if(printId){
+      printAgreement(printId);
     }
 
     const completeId = e.target.getAttribute("data-complete-job");
