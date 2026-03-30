@@ -25,27 +25,13 @@
         <h2>What do you need done?</h2>
         <p class="sub">Pick a service first. We’ll guide you to the right next step automatically.</p>
         <div class="row">
-          <div>
-            <label>Service</label>
-            <select id="custService"></select>
-          </div>
-          <div>
-            <label>Your name</label>
-            <input id="custName" placeholder="John Smith" />
-          </div>
-          <div>
-            <label>Phone</label>
-            <input id="custPhone" placeholder="(555) 555-5555" />
-          </div>
-          <div>
-            <label>Address</label>
-            <input id="custAddress" placeholder="123 Main St" />
-          </div>
+          <div><label>Service</label><select id="custService"></select></div>
+          <div><label>Your name</label><input id="custName" placeholder="John Smith" /></div>
+          <div><label>Phone</label><input id="custPhone" placeholder="(555) 555-5555" /></div>
+          <div><label>Address</label><input id="custAddress" placeholder="123 Main St" /></div>
         </div>
         <div id="dynamicQuestions" class="stack mt12"></div>
-        <div class="btn-row">
-          <button id="continueCustomerBtn" class="primary">Continue</button>
-        </div>
+        <div class="btn-row"><button id="continueCustomerBtn" class="primary">Continue</button></div>
       </div>
 
       <div id="customerStep2" class="step">
@@ -65,23 +51,8 @@
         <h2>Choose a Time</h2>
         <p class="sub">Pick the time that works best for you.</p>
         <div class="row">
-          <div>
-            <label>Date</label>
-            <select id="scheduleDate">
-              <option>Tomorrow</option>
-              <option>This Friday</option>
-              <option>This Saturday</option>
-            </select>
-          </div>
-          <div>
-            <label>Time window</label>
-            <select id="scheduleTime">
-              <option>8–10 AM</option>
-              <option>10–12 PM</option>
-              <option>1–3 PM</option>
-              <option>3–5 PM</option>
-            </select>
-          </div>
+          <div><label>Date</label><select id="scheduleDate"><option>Tomorrow</option><option>This Friday</option><option>This Saturday</option></select></div>
+          <div><label>Time window</label><select id="scheduleTime"><option>8–10 AM</option><option>10–12 PM</option><option>1–3 PM</option><option>3–5 PM</option></select></div>
         </div>
         <div class="btn-row">
           <button id="continueAgreementBtn" class="primary">Continue</button>
@@ -101,9 +72,7 @@
           <p>By signing below, you approve the requested service or appointment and confirm the booking details above.</p>
           <div class="section-title">Customer signature</div>
           <canvas id="customerSig" class="signature" width="900" height="300"></canvas>
-          <div class="btn-row">
-            <button id="clearCustomerSigBtn">Clear Signature</button>
-          </div>
+          <div class="btn-row"><button id="clearCustomerSigBtn">Clear Signature</button></div>
         </div>
         <div class="btn-row">
           <button id="finishBookingBtn" class="primary">Confirm Booking</button>
@@ -116,13 +85,11 @@
         <h2>You’re all set</h2>
         <p id="confirmText" class="sub"></p>
         <div class="notice">We’ll reach out if anything changes.</div>
-        <div class="btn-row center-row">
-          <button id="newTestBookingBtn">Book Another Service</button>
-        </div>
+        <div class="btn-row center-row"><button id="newTestBookingBtn">Book Another Service</button></div>
       </div>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
