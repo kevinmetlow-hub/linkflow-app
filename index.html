@@ -30,22 +30,10 @@
         </div>
 
         <div class="metric-grid">
-          <div class="metric-card glass">
-            <div class="metric-k">New Leads</div>
-            <div class="metric-v" id="mNew">0</div>
-          </div>
-          <div class="metric-card glass">
-            <div class="metric-k">Booked</div>
-            <div class="metric-v" id="mScheduled">0</div>
-          </div>
-          <div class="metric-card glass">
-            <div class="metric-k">Completed</div>
-            <div class="metric-v" id="mCompleted">0</div>
-          </div>
-          <div class="metric-card glass">
-            <div class="metric-k">Quoted Jobs</div>
-            <div class="metric-v" id="mQuoted">0</div>
-          </div>
+          <div class="metric-card glass"><div class="metric-k">New Leads</div><div class="metric-v" id="mNew">0</div></div>
+          <div class="metric-card glass"><div class="metric-k">Booked</div><div class="metric-v" id="mScheduled">0</div></div>
+          <div class="metric-card glass"><div class="metric-k">Completed</div><div class="metric-v" id="mCompleted">0</div></div>
+          <div class="metric-card glass"><div class="metric-k">Quoted Jobs</div><div class="metric-v" id="mQuoted">0</div></div>
         </div>
 
         <div class="section-title">Recent Jobs</div>
@@ -131,18 +119,9 @@
           <div class="eyebrow">Settings</div>
           <h2>Business settings</h2>
           <div class="row">
-            <div>
-              <label>Business name</label>
-              <input id="bizName" />
-            </div>
-            <div>
-              <label>Phone</label>
-              <input id="bizPhone" />
-            </div>
-            <div>
-              <label>Link slug</label>
-              <input id="bizSlug" />
-            </div>
+            <div><label>Business name</label><input id="bizName" /></div>
+            <div><label>Phone</label><input id="bizPhone" /></div>
+            <div><label>Link slug</label><input id="bizSlug" /></div>
             <div>
               <label>Global booking mode</label>
               <select id="quoteMode">
@@ -151,10 +130,7 @@
                 <option value="estimate">Force appointments only</option>
               </select>
             </div>
-            <div>
-              <label>Agreement title</label>
-              <input id="agreementTitle" />
-            </div>
+            <div><label>Agreement title</label><input id="agreementTitle" /></div>
           </div>
           <div class="btn-row">
             <button id="saveSettingsBtn" class="primary">Save Settings</button>
@@ -173,6 +149,6 @@
     </nav>
   </div>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
