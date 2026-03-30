@@ -1,4 +1,11 @@
-const STORAGE_KEY = "linkflow_service_first_v2";
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+const supabaseUrl = 'https://zobsyvttmrocmtfbppfm.supabase.co'
+const supabaseAnonKey = 'sb_publishable_-OCCW_mr0YKCwTcXPycAcg_yPtW3kg5'
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+const STORAGE_KEY = "linkflow_option_b_v1";
 
 const DEMO = {
   business: {
@@ -15,8 +22,25 @@ const DEMO = {
       base: 120,
       mode: "quote",
       questions: [
-        { id:"q1", label:"How big is the job?", type:"multiple", options:[{label:"Small",price:0},{label:"Medium",price:30},{label:"Large",price:60}] },
-        { id:"q2", label:"Heavy stains / extra work?", type:"yesno", options:[{label:"No",price:0},{label:"Yes",price:35}] }
+        {
+          id:"q1",
+          label:"How big is the job?",
+          type:"multiple",
+          options:[
+            {id:"o1",label:"Small",modifierType:"fixed",modifierValue:0},
+            {id:"o2",label:"Medium",modifierType:"fixed",modifierValue:30},
+            {id:"o3",label:"Large",modifierType:"fixed",modifierValue:60}
+          ]
+        },
+        {
+          id:"q2",
+          label:"Heavy stains / extra work?",
+          type:"yesno",
+          options:[
+            {id:"o4",label:"No",modifierType:"fixed",modifierValue:0},
+            {id:"o5",label:"Yes",modifierType:"fixed",modifierValue:35}
+          ]
+        }
       ]
     },
     {
@@ -25,8 +49,16 @@ const DEMO = {
       base: 0,
       mode: "estimate",
       questions: [
-        { id:"q3", label:"House size", type:"multiple", options:[{label:"Small",price:0},{label:"Medium",price:0},{label:"Large",price:0}] },
-        { id:"q4", label:"Two-story?", type:"yesno", options:[{label:"No",price:0},{label:"Yes",price:0}] }
+        {
+          id:"q3",
+          label:"House size",
+          type:"multiple",
+          options:[
+            {id:"o6",label:"Small",modifierType:"fixed",modifierValue:0},
+            {id:"o7",label:"Medium",modifierType:"fixed",modifierValue:0},
+            {id:"o8",label:"Large",modifierType:"fixed",modifierValue:0}
+          ]
+        }
       ]
     }
   ],
@@ -46,7 +78,7 @@ let state = {
 
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return document.querySelectorAll(sel); }
-function money(n){ return "$" + Math.round(n || 0).toLocaleString(); }
+function money(n){ return "$" + Number(n || 0).toLocaleString(undefined,{maximumFractionDigits:2}); }
 function uid(prefix="id"){ return prefix + "_" + Date.now() + "_" + Math.floor(Math.random()*100000); }
 
 function saveState(){
@@ -208,10 +240,6 @@ function openServiceEditor(id){
   renderQuestionEditor(service);
   switchScreen("editor");
 }
-function serializeOptions(q){
-  if(q.type === "text" || q.type === "number") return "";
-  return (q.options || []).map(o => `${o.label}|${o.price}`).join(",");
-}
 function renderQuestionEditor(service){
   const box = qs("questionList");
   if(!box) return;
@@ -232,22 +260,42 @@ function renderQuestionEditor(service){
           </select>
         </div>
       </div>
-      <div class="mt12">
-        <label>Options / pricing</label>
-        <input data-q-options="${q.id}" value="${escapeHtml(serializeOptions(q))}" placeholder="Small|0,Medium|30,Large|60" />
+
+      <div class="section-title">Options</div>
+      <div class="stack">
+        ${(q.options || []).map(opt => `
+          <div class="option-card">
+            <div class="option-grid">
+              <div>
+                <label>Option</label>
+                <input data-opt-label="${q.id}__${opt.id}" value="${escapeHtml(opt.label)}" />
+              </div>
+              <div>
+                <label>Pricing method</label>
+                <select data-opt-type="${q.id}__${opt.id}">
+                  <option value="fixed" ${opt.modifierType==="fixed"?"selected":""}>Fixed $</option>
+                  <option value="percent" ${opt.modifierType==="percent"?"selected":""}>Percent %</option>
+                  <option value="multiplier" ${opt.modifierType==="multiplier"?"selected":""}>Multiplier x</option>
+                </select>
+              </div>
+              <div>
+                <label>Value</label>
+                <input type="number" step="0.01" data-opt-value="${q.id}__${opt.id}" value="${opt.modifierValue}" />
+              </div>
+            </div>
+            <div class="btn-row">
+              <button data-delete-option="${q.id}__${opt.id}" class="danger-btn">Remove Option</button>
+            </div>
+          </div>
+        `).join("")}
       </div>
+
       <div class="btn-row">
+        <button data-add-option="${q.id}">Add Option</button>
         <button data-delete-question="${q.id}" class="danger-btn">Delete Question</button>
       </div>
     </div>
   `).join("") : '<div class="question-card"><div class="mini">No questions yet. Add your first question.</div></div>';
-}
-function parseOptions(raw, type){
-  if(type === "text" || type === "number") return [];
-  return (raw || "").split(",").map(part => {
-    const bits = part.split("|");
-    return { label:(bits[0] || "").trim(), price: parseFloat(bits[1]) || 0 };
-  }).filter(x => x.label);
 }
 function addQuestion(){
   const service = state.services.find(s => s.id === state.editingServiceId);
@@ -256,8 +304,18 @@ function addQuestion(){
     id: uid("q"),
     label: "New question",
     type: "multiple",
-    options: [{label:"Option 1", price:0}]
+    options: [{id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0}]
   });
+  saveState();
+  renderQuestionEditor(service);
+}
+function addOption(questionId){
+  const service = state.services.find(s => s.id === state.editingServiceId);
+  if(!service) return;
+  const q = service.questions.find(x => x.id === questionId);
+  if(!q) return;
+  q.options = q.options || [];
+  q.options.push({id:uid("opt"), label:"New option", modifierType:"fixed", modifierValue:0});
   saveState();
   renderQuestionEditor(service);
 }
@@ -271,14 +329,21 @@ function saveServiceEditor(){
   service.questions = service.questions.map(q => {
     const labelEl = document.querySelector(`[data-q-label="${q.id}"]`);
     const typeEl = document.querySelector(`[data-q-type="${q.id}"]`);
-    const optsEl = document.querySelector(`[data-q-options="${q.id}"]`);
-    const type = typeEl ? typeEl.value : q.type;
-    return {
+    const nextType = typeEl ? typeEl.value : q.type;
+
+    const nextQuestion = {
       ...q,
       label: labelEl ? labelEl.value.trim() || "Question" : q.label,
-      type,
-      options: parseOptions(optsEl ? optsEl.value : "", type)
+      type: nextType,
+      options: nextType === "text" || nextType === "number" ? [] : (q.options || []).map(opt => {
+        const key = `${q.id}__${opt.id}`;
+        const label = document.querySelector(`[data-opt-label="${key}"]`)?.value?.trim() || "Option";
+        const modifierType = document.querySelector(`[data-opt-type="${key}"]`)?.value || "fixed";
+        const modifierValue = parseFloat(document.querySelector(`[data-opt-value="${key}"]`)?.value) || 0;
+        return { ...opt, label, modifierType, modifierValue };
+      })
     };
+    return nextQuestion;
   });
 
   saveState();
@@ -327,24 +392,38 @@ function goStep(id){
   qsa(".step").forEach(s => s.classList.remove("active"));
   if(qs(id)) qs(id).classList.add("active");
 }
+function applyModifier(total, modifierType, modifierValue){
+  const value = Number(modifierValue || 0);
+  if(modifierType === "fixed") return total + value;
+  if(modifierType === "percent") return total + (total * (value / 100));
+  if(modifierType === "multiplier") return total * value;
+  return total;
+}
+function modifierText(opt){
+  const value = Number(opt.modifierValue || 0);
+  if(opt.modifierType === "fixed") return `${value >= 0 ? "+" : ""}${money(value)}`;
+  if(opt.modifierType === "percent") return `${value >= 0 ? "+" : ""}${value}%`;
+  if(opt.modifierType === "multiplier") return `x${value}`;
+  return "";
+}
 function collectAnswersAndPrice(svc){
-  let total = svc.base || 0;
-  const parts = [`${svc.name}: ${money(svc.base)}`];
+  let total = Number(svc.base || 0);
+  const parts = [`${svc.name}: ${money(total)}`];
   const answers = [];
   svc.questions.forEach((q, idx) => {
     const el = qs("cq_" + idx);
     if(!el) return;
     if(q.type === "text" || q.type === "number"){
-      answers.push({question:q.label, answer:el.value || "", price:0});
+      answers.push({question:q.label, answer:el.value || "", modifierType:null, modifierValue:0});
       parts.push(`${q.label}: ${el.value || "-"}`);
       return;
     }
     const selected = parseInt(el.value, 10) || 0;
     const opt = (q.options || [])[selected];
     if(opt){
-      total += opt.price || 0;
-      answers.push({question:q.label, answer:opt.label, price:opt.price || 0});
-      parts.push(`${q.label}: ${opt.label} (${(opt.price||0) >= 0 ? "+" : ""}${money(opt.price||0)})`);
+      total = applyModifier(total, opt.modifierType, opt.modifierValue);
+      answers.push({question:q.label, answer:opt.label, modifierType:opt.modifierType, modifierValue:opt.modifierValue});
+      parts.push(`${q.label}: ${opt.label} (${modifierText(opt)})`);
     }
   });
   return { total, parts, answers };
@@ -466,6 +545,21 @@ function bindEvents(){
       const service = state.services.find(s => s.id === state.editingServiceId);
       if(service){
         service.questions = service.questions.filter(q => q.id !== delQ);
+        saveState();
+        renderQuestionEditor(service);
+      }
+    }
+
+    const addOptQ = e.target.getAttribute("data-add-option");
+    if(addOptQ) addOption(addOptQ);
+
+    const delOptKey = e.target.getAttribute("data-delete-option");
+    if(delOptKey){
+      const [qId, optId] = delOptKey.split("__");
+      const service = state.services.find(s => s.id === state.editingServiceId);
+      const question = service?.questions.find(q => q.id === qId);
+      if(question){
+        question.options = (question.options || []).filter(o => o.id !== optId);
         saveState();
         renderQuestionEditor(service);
       }
