@@ -121,3 +121,33 @@ button.primary{background:linear-gradient(180deg,#1f6fff,#0f5ce5);color:#fff;bor
 .nav-btn.active{background:linear-gradient(180deg,#1f6fff,#0f5ce5);color:#fff;box-shadow:0 12px 28px rgba(31,111,255,.22)}
 .mt12{margin-top:12px}
 .helper{font-size:12px;color:var(--muted);margin-top:6px}
+
+
+.small-select{
+  border-radius:14px;
+  padding:10px 12px;
+  border:1px solid var(--line-strong);
+  background:rgba(255,255,255,.84);
+  color:var(--text);
+  font-size:14px;
+}
+.modal.hidden{display:none!important}
+.modal{
+  position:fixed;
+  inset:0;
+  z-index:60;
+}
+.modal-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(15,23,42,.28);
+}
+.modal-panel{
+  position:relative;
+  width:min(760px, calc(100% - 24px));
+  max-height:calc(100vh - 40px);
+  overflow:auto;
+  margin:20px auto;
+  border-radius:28px;
+  padding:20px;
+}
