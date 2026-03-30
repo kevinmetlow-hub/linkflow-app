@@ -5,7 +5,7 @@ const supabaseUrl = 'https://zobsyvttmrocmtfbppfm.supabase.co'
 const supabaseAnonKey = 'sb_publishable_-OCCW_mr0YKCwTcXPycAcg_yPtW3kg5'
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-const STORAGE_KEY = "linkflow_option_b_v1";
+const STORAGE_KEY = "linkflow_clean_editor_v1";
 
 const DEMO = {
   business: {
@@ -40,6 +40,12 @@ const DEMO = {
             {id:"o4",label:"No",modifierType:"fixed",modifierValue:0},
             {id:"o5",label:"Yes",modifierType:"fixed",modifierValue:35}
           ]
+        },
+        {
+          id:"q3",
+          label:"Gate code needed?",
+          type:"text",
+          options:[]
         }
       ]
     },
@@ -49,16 +55,7 @@ const DEMO = {
       base: 0,
       mode: "estimate",
       questions: [
-        {
-          id:"q3",
-          label:"House size",
-          type:"multiple",
-          options:[
-            {id:"o6",label:"Small",modifierType:"fixed",modifierValue:0},
-            {id:"o7",label:"Medium",modifierType:"fixed",modifierValue:0},
-            {id:"o8",label:"Large",modifierType:"fixed",modifierValue:0}
-          ]
-        }
+        { id:"q4", label:"House size", type:"multiple", options:[{id:"o6",label:"Small",modifierType:"fixed",modifierValue:0},{id:"o7",label:"Medium",modifierType:"fixed",modifierValue:0},{id:"o8",label:"Large",modifierType:"fixed",modifierValue:0}] }
       ]
     }
   ],
@@ -240,10 +237,53 @@ function openServiceEditor(id){
   renderQuestionEditor(service);
   switchScreen("editor");
 }
+function ensureQuestionOptionsShape(question){
+  if(question.type === "yesno" && (!question.options || question.options.length !== 2)){
+    question.options = [
+      {id:uid("opt"), label:"Yes", modifierType:"fixed", modifierValue:0},
+      {id:uid("opt"), label:"No", modifierType:"fixed", modifierValue:0},
+    ];
+  }
+  if((question.type === "text" || question.type === "number") && !question.options){
+    question.options = [];
+  }
+  if(question.type === "multiple" && (!question.options || question.options.length === 0)){
+    question.options = [{id:uid("opt"), label:"Option 1", modifierType:"fixed", modifierValue:0}];
+  }
+}
+function renderModifierFields(question, option){
+  const key = `${question.id}__${option.id}`;
+  return `
+    <div class="option-line">
+      <div>
+        <input data-opt-label="${key}" value="${escapeHtml(option.label)}" placeholder="Option name" />
+      </div>
+      <div>
+        <select data-opt-type="${key}">
+          <option value="fixed" ${option.modifierType==="fixed"?"selected":""}>Fixed $</option>
+          <option value="percent" ${option.modifierType==="percent"?"selected":""}>Percent %</option>
+          <option value="multiplier" ${option.modifierType==="multiplier"?"selected":""}>Multiplier x</option>
+        </select>
+      </div>
+      <div>
+        <input type="number" step="0.01" data-opt-value="${key}" value="${option.modifierValue}" />
+      </div>
+      <div>
+        <button data-delete-option="${key}" class="danger-btn">Remove</button>
+      </div>
+    </div>
+  `;
+}
 function renderQuestionEditor(service){
   const box = qs("questionList");
   if(!box) return;
-  box.innerHTML = service.questions.length ? service.questions.map(q => `
+  box.innerHTML = service.questions.length ? service.questions.map(q => {
+    ensureQuestionOptionsShape(q);
+    const helper = q.type === "multiple" ? "Add choices and set how each one changes the price."
+      : q.type === "yesno" ? "Yes and No are built in. Just set the pricing rules."
+      : q.type === "text" ? "Customer types an answer. No pricing rules here."
+      : "Customer enters a number. This is informational for now.";
+    return `
     <div class="question-card">
       <div class="row-compact">
         <div>
@@ -252,50 +292,46 @@ function renderQuestionEditor(service){
         </div>
         <div>
           <label>Question type</label>
-          <select data-q-type="${q.id}">
+          <select data-q-type="${q.id}" class="q-type-select">
             <option value="multiple" ${q.type==="multiple"?"selected":""}>Multiple Choice</option>
             <option value="yesno" ${q.type==="yesno"?"selected":""}>Yes / No</option>
             <option value="text" ${q.type==="text"?"selected":""}>Text Input</option>
             <option value="number" ${q.type==="number"?"selected":""}>Number Input</option>
           </select>
+          <div class="helper">${helper}</div>
         </div>
       </div>
 
-      <div class="section-title">Options</div>
-      <div class="stack">
-        ${(q.options || []).map(opt => `
-          <div class="option-card">
-            <div class="option-grid">
-              <div>
-                <label>Option</label>
-                <input data-opt-label="${q.id}__${opt.id}" value="${escapeHtml(opt.label)}" />
-              </div>
-              <div>
-                <label>Pricing method</label>
-                <select data-opt-type="${q.id}__${opt.id}">
-                  <option value="fixed" ${opt.modifierType==="fixed"?"selected":""}>Fixed $</option>
-                  <option value="percent" ${opt.modifierType==="percent"?"selected":""}>Percent %</option>
-                  <option value="multiplier" ${opt.modifierType==="multiplier"?"selected":""}>Multiplier x</option>
-                </select>
-              </div>
-              <div>
-                <label>Value</label>
-                <input type="number" step="0.01" data-opt-value="${q.id}__${opt.id}" value="${opt.modifierValue}" />
-              </div>
-            </div>
-            <div class="btn-row">
-              <button data-delete-option="${q.id}__${opt.id}" class="danger-btn">Remove Option</button>
-            </div>
-          </div>
-        `).join("")}
-      </div>
+      ${q.type === "multiple" ? `
+        <div class="section-title">Options</div>
+        <div class="option-head"><div>Option</div><div>Rule</div><div>Value</div><div></div></div>
+        <div class="option-table">
+          ${(q.options || []).map(opt => renderModifierFields(q, opt)).join("")}
+        </div>
+        <div class="btn-row"><button data-add-option="${q.id}">Add Option</button></div>
+      ` : ""}
+
+      ${q.type === "yesno" ? `
+        <div class="section-title">Pricing Rules</div>
+        <div class="option-head"><div>Answer</div><div>Rule</div><div>Value</div><div></div></div>
+        <div class="option-table">
+          ${(q.options || []).map(opt => renderModifierFields(q, opt)).join("")}
+        </div>
+      ` : ""}
+
+      ${q.type === "text" ? `
+        <div class="mini">This question collects information only.</div>
+      ` : ""}
+
+      ${q.type === "number" ? `
+        <div class="mini">This question collects a number only. Pricing logic can be added later if you want.</div>
+      ` : ""}
 
       <div class="btn-row">
-        <button data-add-option="${q.id}">Add Option</button>
         <button data-delete-question="${q.id}" class="danger-btn">Delete Question</button>
       </div>
     </div>
-  `).join("") : '<div class="question-card"><div class="mini">No questions yet. Add your first question.</div></div>';
+  `}).join("") : '<div class="question-card"><div class="mini">No questions yet. Add your first question.</div></div>';
 }
 function addQuestion(){
   const service = state.services.find(s => s.id === state.editingServiceId);
@@ -319,6 +355,25 @@ function addOption(questionId){
   saveState();
   renderQuestionEditor(service);
 }
+function updateQuestionType(questionId, newType){
+  const service = state.services.find(s => s.id === state.editingServiceId);
+  if(!service) return;
+  const question = service.questions.find(q => q.id === questionId);
+  if(!question) return;
+  question.type = newType;
+  if(newType === "yesno"){
+    question.options = [
+      {id:uid("opt"), label:"Yes", modifierType:"fixed", modifierValue:0},
+      {id:uid("opt"), label:"No", modifierType:"fixed", modifierValue:0},
+    ];
+  } else if(newType === "text" || newType === "number"){
+    question.options = [];
+  } else if(newType === "multiple" && (!question.options || question.options.length === 0)){
+    question.options = [{id:uid("opt"), label:"Option 1", modifierType:"fixed", modifierValue:0}];
+  }
+  saveState();
+  renderQuestionEditor(service);
+}
 function saveServiceEditor(){
   const service = state.services.find(s => s.id === state.editingServiceId);
   if(!service) return;
@@ -331,19 +386,23 @@ function saveServiceEditor(){
     const typeEl = document.querySelector(`[data-q-type="${q.id}"]`);
     const nextType = typeEl ? typeEl.value : q.type;
 
-    const nextQuestion = {
-      ...q,
-      label: labelEl ? labelEl.value.trim() || "Question" : q.label,
-      type: nextType,
-      options: nextType === "text" || nextType === "number" ? [] : (q.options || []).map(opt => {
+    let nextOptions = [];
+    if(nextType === "multiple" || nextType === "yesno"){
+      nextOptions = (q.options || []).map(opt => {
         const key = `${q.id}__${opt.id}`;
         const label = document.querySelector(`[data-opt-label="${key}"]`)?.value?.trim() || "Option";
         const modifierType = document.querySelector(`[data-opt-type="${key}"]`)?.value || "fixed";
         const modifierValue = parseFloat(document.querySelector(`[data-opt-value="${key}"]`)?.value) || 0;
         return { ...opt, label, modifierType, modifierValue };
-      })
+      });
+    }
+
+    return {
+      ...q,
+      label: labelEl ? labelEl.value.trim() || "Question" : q.label,
+      type: nextType,
+      options: nextOptions
     };
-    return nextQuestion;
   });
 
   saveState();
@@ -535,6 +594,13 @@ function bindEvents(){
   if(qs("newTestBookingBtn")) qs("newTestBookingBtn").addEventListener("click", () => { window.location.reload(); });
   if(qs("clearCustomerSigBtn")) qs("clearCustomerSigBtn").addEventListener("click", () => clearSig("customerSig"));
   qsa("[data-step]").forEach(btn => btn.addEventListener("click", () => goStep(btn.dataset.step)));
+
+  document.addEventListener("change", (e) => {
+    if(e.target.matches(".q-type-select")){
+      const qId = e.target.getAttribute("data-q-type");
+      updateQuestionType(qId, e.target.value);
+    }
+  });
 
   document.addEventListener("click", (e) => {
     const editId = e.target.getAttribute("data-edit-service");
