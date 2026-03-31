@@ -601,3 +601,55 @@ button.primary,
     gap:10px;
   }
 }
+
+
+.status-toggle{
+  display:inline-flex;
+  gap:8px;
+  padding:6px;
+  border-radius:20px;
+  background:rgba(255,255,255,.65);
+  border:1px solid rgba(15,23,42,.06);
+  box-shadow:var(--shadow-soft);
+}
+.status-tab{
+  padding:10px 16px;
+  border-radius:16px;
+  background:transparent;
+  border:1px solid transparent;
+  box-shadow:none;
+}
+.status-tab.active{
+  background:linear-gradient(180deg,#27a9ff,#0a84ff);
+  color:#fff;
+  border:none;
+  box-shadow:0 10px 20px rgba(10,132,255,.18);
+}
+.profile-top{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:center;
+  margin-bottom:16px;
+}
+.profile-top-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.profile-logo-card{
+  padding:12px;
+  border-radius:22px;
+  background:rgba(255,255,255,.74);
+  border:1px solid rgba(15,23,42,.06);
+  box-shadow:var(--shadow-soft);
+}
+.profile-metrics{
+  margin-top:0;
+}
+@media(max-width:760px){
+  .profile-top{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+}
