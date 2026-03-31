@@ -11,7 +11,7 @@ junk_removal:{businessName:"My Junk Removal Business",services:[{name:"Junk Pick
 scratch:{businessName:"My Business",services:[]}
 };
 
-let state={user:null,business:{id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement",logoData:""},services:[],jobs:[],editingServiceId:null,editingDraft:null,currentQuote:0,currentServiceId:null,latestAnswers:[],activeJobId:null,homeStatusFilter:"scheduled",selectedTemplate:"pressure_washing",jobExtras:{}};
+let state={user:null,business:{id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement",logoData:""},services:[],jobs:[],editingServiceId:null,editingDraft:null,currentQuote:0,currentServiceId:null,latestAnswers:[],activeJobId:null,currentScreen:"home",homeStatusFilter:"scheduled",selectedTemplate:"pressure_washing",jobExtras:{}};
 
 const qs=id=>document.getElementById(id), qsa=s=>document.querySelectorAll(s), clone=o=>JSON.parse(JSON.stringify(o)), money=n=>"$"+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}), uid=(p="id")=>p+"_"+Date.now()+"_"+Math.floor(Math.random()*1e5);
 const escapeHtml=s=>String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -27,6 +27,7 @@ async function requireUser(){
 }
 const statusLabel=s=>s==="completed"?"Completed":s==="canceled"?"Canceled":"Pending";
 const localKey=s=>`linkflow_${state.user?.id||"guest"}_${s}`;
+const screenStorageKey=()=>localKey("current_screen");
 
 function showOnly(id){["authSection","onboardingSection","appShell"].forEach(x=>qs(x)?.classList.add("hidden")); qs(id)?.classList.remove("hidden")}
 function saveLocalExtras(){localStorage.setItem(localKey("jobExtras"),JSON.stringify(state.jobExtras||{}))}
@@ -98,7 +99,9 @@ async function ensureContext(){
   if(!state.user){
     state.business={id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement"};
     state.services=[]; state.jobs=[]; state.jobExtras={};
+    state.currentScreen="home";
     state.homeStatusFilter="scheduled";
+    try{localStorage.removeItem(screenStorageKey())}catch(e){}
     showOnly("authSection");
     return;
   }
@@ -106,7 +109,7 @@ async function ensureContext(){
   const {data:business}=await supabase.from("businesses").select("*").eq("user_id",state.user.id).maybeSingle();
   if(!business){showOnly("onboardingSection"); return}
   state.business={id:business.id,name:business.name||"",phone:business.phone||"",slug:business.slug||"",mode:business.mode||"both",agreementTitle:business.agreement_title||"Service Agreement",logoData:business.logo_data||""};
-  await loadServicesFromSupabase(business.id); await loadJobsFromSupabase(business.id); renderEverything(); showOnly("appShell"); switchScreen("home");
+  await loadServicesFromSupabase(business.id); await loadJobsFromSupabase(business.id); renderEverything(); showOnly("appShell"); const savedScreen = (()=>{ try{return localStorage.getItem(screenStorageKey())||"home"}catch(e){return "home"} })(); switchScreen(savedScreen);
 }
 
 async function createBusinessFromOnboarding(){
@@ -230,35 +233,26 @@ function renderServicesList(){
 
   box.innerHTML = state.services.map(s => {
     const previewCount = (s.questions || []).length;
-    const previewNames = (s.questions || []).slice(0, 2).map(q => escapeHtml(q.label || "")).join(" • ");
-    const previewText = previewCount === 0
-      ? "No questions yet"
-      : previewCount <= 2
-        ? previewNames
-        : `${previewNames} • +${previewCount - 2} more`;
-
     return `
-      <div class="service-card service-clickable" role="button" tabindex="0" data-edit-service="${s.id}">
+      <div class="service-card service-clickable service-card-compact" role="button" tabindex="0" data-edit-service="${s.id}">
         <div class="service-header">
           <div class="service-title-wrap">
             <div class="service-title">${escapeHtml(s.name)}</div>
-            <div class="service-meta">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"}</div>
+            <div class="service-meta">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · ${previewCount} ${previewCount===1?"question":"questions"}</div>
           </div>
           <div class="service-price">${money(s.base)}</div>
         </div>
-
         <div class="service-preview-line">
-          <span class="service-preview-count">${previewCount} ${previewCount===1?"question":"questions"}</span>
+          <div class="mini service-preview-mini">Tap to edit service settings</div>
           <span class="service-preview-arrow">›</span>
-        </div>
-
-        <div class="service-questions-preview">
-          <div class="mini">${previewText}</div>
         </div>
       </div>
     `;
   }).join("");
+
+  bindServiceCardInteractions();
 }
+
 
 
 
@@ -359,26 +353,33 @@ async function saveSettings(){await requireUser(); state.business.name=qs("bizNa
   if(qs("bizLogo")) qs("bizLogo").value = "";
   alert("Profile saved.")
 }
-function switchScreen(name){qsa(".screen").forEach(s=>s.classList.remove("active")); qs("screen-"+name)?.classList.add("active"); qsa(".nav-btn").forEach(b=>b.classList.remove("active")); document.querySelector(`.nav-btn[data-screen="${name}"]`)?.classList.add("active")}
+function switchScreen(name){state.currentScreen=name; try{localStorage.setItem(screenStorageKey(),name)}catch(e){} qsa(".screen").forEach(s=>s.classList.remove("active")); qs("screen-"+name)?.classList.add("active"); qsa(".nav-btn").forEach(b=>b.classList.remove("active")); document.querySelector(`.nav-btn[data-screen="${name}"]`)?.classList.add("active")}
 function renderEverything(){renderSharedBits(); renderMetrics(); renderJobs(); renderServicesList(); bindServiceCardInteractions()}
 function bindServiceCardInteractions(){
   qsa(".service-clickable").forEach(card => {
     if(card.dataset.boundClick === "1") return;
     card.dataset.boundClick = "1";
-    card.addEventListener("click", (e) => {
-      e.preventDefault();
+    const open = () => {
       const id = card.getAttribute("data-edit-service");
       if(id) openServiceEditor(id);
+    };
+    card.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      open();
+    });
+    card.addEventListener("pointerup", (e) => {
+      e.preventDefault();
     });
     card.addEventListener("keydown", (e) => {
       if(e.key === "Enter" || e.key === " "){
         e.preventDefault();
-        const id = card.getAttribute("data-edit-service");
-        if(id) openServiceEditor(id);
+        open();
       }
     });
   });
 }
+
 function applyModifier(total,t,v){v=Number(v||0); if(t==="fixed")return total+v; if(t==="percent")return total+(total*(v/100)); if(t==="multiplier")return total*v; return total}
 function modifierText(o){const v=Number(o.modifierValue||0); if(o.modifierType==="fixed")return `${v>=0?"+":""}${money(v)}`; if(o.modifierType==="percent")return `${v>=0?"+":""}${v}%`; if(o.modifierType==="multiplier")return `x${v}`; return ""}
 function renderCustomerServices(){const sel=qs("custService"); if(!sel)return; sel.innerHTML=state.services.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join(""); state.currentServiceId=state.services[0]?.id||null; renderCustomerQuestions()}
