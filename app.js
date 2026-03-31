@@ -198,7 +198,7 @@ function renderTemplatePreview(){
   }).join("");
 }
 
-function renderSharedBits(){if(qs("headerBusinessName"))qs("headerBusinessName").textContent=state.business.name||"Contractor App"; const link=`${window.location.origin}/customer.html?slug=${state.business.slug||""}`; qs("bookingLinkNotice")&&(qs("bookingLinkNotice").textContent=link); qs("bizName")&&(qs("bizName").value=state.business.name||""); qs("bizPhone")&&(qs("bizPhone").value=state.business.phone||""); qs("bizSlug")&&(qs("bizSlug").value=state.business.slug||""); qs("quoteMode")&&(qs("quoteMode").value=state.business.mode||"both"); qs("agreementTitle")&&(qs("agreementTitle").value=state.business.agreementTitle||"Service Agreement"); setLogoUI(state.business.logoData||"")}
+function renderSharedBits(){if(qs("headerBusinessName"))qs("headerBusinessName").textContent=state.business.name||"Contractor App"; const link=`${window.location.origin}/customer.html?slug=${state.business.slug||""}`; qs("bookingLinkNotice")&&(qs("bookingLinkNotice").textContent=link); qs("bizName")&&(qs("bizName").value=state.business.name||""); qs("bizPhone")&&(qs("bizPhone").value=state.business.phone||""); qs("bizSlug")&&(qs("bizSlug").value=state.business.slug||""); qs("quoteMode")&&(qs("quoteMode").value=state.business.mode||"both"); qsa("[data-quote-mode]").forEach(b=>b.classList.toggle("active", b.getAttribute("data-quote-mode")===(state.business.mode||"both"))); qs("agreementTitle")&&(qs("agreementTitle").value=state.business.agreementTitle||"Service Agreement"); setLogoUI(state.business.logoData||"")}
 function renderMetrics(){qs("mPending")&&(qs("mPending").textContent=state.jobs.filter(j=>(j.status||"scheduled")==="scheduled").length); qs("mCompleted")&&(qs("mCompleted").textContent=state.jobs.filter(j=>j.status==="completed").length); qs("mCanceled")&&(qs("mCanceled").textContent=state.jobs.filter(j=>j.status==="canceled").length); qs("mQuoted")&&(qs("mQuoted").textContent=state.jobs.filter(j=>j.mode==="quote").length)}
 function renderJobs(){
   const recent=qs("recentJobs"), empty='<div class="job-card"><div class="mini">No jobs yet.</div></div>';
@@ -247,18 +247,19 @@ function renderServicesList(){
           <div class="service-price">${money(s.base)}</div>
         </div>
 
-        <div class="service-preview-row">
-          <div class="service-preview-label">Questions</div>
-          <div class="service-preview-count">${previewCount} ${previewCount===1?"Question":"Questions"}</div>
+        <div class="service-preview-line">
+          <span class="service-preview-count">${previewCount} ${previewCount===1?"question":"questions"}</span>
+          <span class="service-preview-arrow">›</span>
         </div>
 
-        <div class="service-questions service-questions-preview">
+        <div class="service-questions-preview">
           <div class="mini">${previewText}</div>
         </div>
       </div>
     `;
   }).join("");
 }
+
 
 
 function renderQuestionEditor(service){
@@ -347,7 +348,7 @@ function addQuestion(){ addQuestionOfType("multiple"); }
 function addOption(qid){if(!state.editingDraft)return; syncDraft(); const q=state.editingDraft.questions.find(x=>x.id===qid); if(!q)return; q.options.push({id:uid("opt"),label:`Option ${(q.options?.length||0)+1}`,modifierType:"fixed",modifierValue:0}); commitDraft(); renderQuestionEditor(state.editingDraft)}
 function updateQuestionType(qid,t){if(!state.editingDraft)return; syncDraft(); const q=state.editingDraft.questions.find(x=>x.id===qid); if(!q)return; q.type=t; if(t==="yesno")q.options=[{id:uid("opt"),label:"Yes",modifierType:"fixed",modifierValue:0},{id:uid("opt"),label:"No",modifierType:"fixed",modifierValue:0}]; else if(t==="text"||t==="number")q.options=[]; else if(t==="multiple"&&!q.options.length)q.options=[{id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0}]; commitDraft(); renderQuestionEditor(state.editingDraft)}
 async function saveServiceEditor(){if(!state.editingDraft)return; syncDraft(); commitDraft(); await syncServicesToSupabase(); renderServicesList(); renderCustomerServices(); alert("Service saved.")}
-async function deleteService(){if(!state.editingServiceId)return; if(!confirm("Delete this service?"))return; state.services=state.services.filter(s=>s.id!==state.editingServiceId); state.editingServiceId=null; state.editingDraft=null; await syncServicesToSupabase(); renderServicesList(); renderCustomerServices(); switchScreen("services")}
+async function deleteService(){if(!state.editingServiceId)return; if(!confirm("Delete this service?"))return; state.services=state.services.filter(s=>s.id!==state.editingServiceId); state.editingServiceId=null; state.editingDraft=null; await syncServicesToSupabase(); renderServicesList(); bindServiceCardInteractions(); renderCustomerServices(); switchScreen("services")}
 async function saveSettings(){await requireUser(); state.business.name=qs("bizName").value.trim()||state.business.name; state.business.phone=qs("bizPhone").value.trim(); state.business.slug=slugify(qs("bizSlug").value.trim())||state.business.slug; state.business.mode=qs("quoteMode").value; state.business.agreementTitle=qs("agreementTitle").value.trim()||"Service Agreement";
   const logoFile = qs("bizLogo")?.files?.[0];
   if(logoFile){
@@ -359,7 +360,25 @@ async function saveSettings(){await requireUser(); state.business.name=qs("bizNa
   alert("Profile saved.")
 }
 function switchScreen(name){qsa(".screen").forEach(s=>s.classList.remove("active")); qs("screen-"+name)?.classList.add("active"); qsa(".nav-btn").forEach(b=>b.classList.remove("active")); document.querySelector(`.nav-btn[data-screen="${name}"]`)?.classList.add("active")}
-function renderEverything(){renderSharedBits(); renderMetrics(); renderJobs(); renderServicesList()}
+function renderEverything(){renderSharedBits(); renderMetrics(); renderJobs(); renderServicesList(); bindServiceCardInteractions()}
+function bindServiceCardInteractions(){
+  qsa(".service-clickable").forEach(card => {
+    if(card.dataset.boundClick === "1") return;
+    card.dataset.boundClick = "1";
+    card.addEventListener("click", (e) => {
+      e.preventDefault();
+      const id = card.getAttribute("data-edit-service");
+      if(id) openServiceEditor(id);
+    });
+    card.addEventListener("keydown", (e) => {
+      if(e.key === "Enter" || e.key === " "){
+        e.preventDefault();
+        const id = card.getAttribute("data-edit-service");
+        if(id) openServiceEditor(id);
+      }
+    });
+  });
+}
 function applyModifier(total,t,v){v=Number(v||0); if(t==="fixed")return total+v; if(t==="percent")return total+(total*(v/100)); if(t==="multiplier")return total*v; return total}
 function modifierText(o){const v=Number(o.modifierValue||0); if(o.modifierType==="fixed")return `${v>=0?"+":""}${money(v)}`; if(o.modifierType==="percent")return `${v>=0?"+":""}${v}%`; if(o.modifierType==="multiplier")return `x${v}`; return ""}
 function renderCustomerServices(){const sel=qs("custService"); if(!sel)return; sel.innerHTML=state.services.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join(""); state.currentServiceId=state.services[0]?.id||null; renderCustomerQuestions()}
@@ -393,8 +412,13 @@ function bindContractorEvents(){
     renderJobs();
   }));
   qs("triggerLogoUploadBtn")?.addEventListener("click",()=>qs("bizLogo")?.click());
+  qsa("[data-quote-mode]").forEach(btn=>btn.addEventListener("click",()=>{
+    qsa("[data-quote-mode]").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    if(qs("quoteMode")) qs("quoteMode").value = btn.getAttribute("data-quote-mode");
+  }));
   document.querySelectorAll("[data-close-modal]").forEach(el=>el.addEventListener("click",()=>closeModal(el.getAttribute("data-close-modal"))));
-  qs("newServiceBtn")?.addEventListener("click",()=>{const s={id:uid("svc"),name:"New Service",base:0,mode:"quote",questions:[]}; state.services.push(s); renderServicesList(); openServiceEditor(s.id)});
+  qs("newServiceBtn")?.addEventListener("click",()=>{const s={id:uid("svc"),name:"New Service",base:0,mode:"quote",questions:[]}; state.services.push(s); renderServicesList(); bindServiceCardInteractions(); openServiceEditor(s.id)});
   qs("backToServicesBtn")?.addEventListener("click",()=>switchScreen("services"));
   qs("addQuestionBtn")?.addEventListener("click",()=>{
     const choice = window.prompt("Add which question type?\nType: multiple, yesno, text, or number","multiple");
