@@ -484,6 +484,37 @@ function bindContractorEvents(){
   });
 }
 
+function initSignature(id){
+  const canvas = document.getElementById(id);
+  if(!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  let drawing = false;
+
+  function start(e){
+    drawing = true;
+    ctx.beginPath();
+    const rect = canvas.getBoundingClientRect();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+  }
+
+  function draw(e){
+    if(!drawing) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+  }
+
+  function stop(){
+    drawing = false;
+  }
+
+  canvas.addEventListener("mousedown", start);
+  canvas.addEventListener("mousemove", draw);
+  canvas.addEventListener("mouseup", stop);
+  canvas.addEventListener("mouseleave", stop);
+}
+
 async function init(){
   initSignature("customerSig");
   try{
