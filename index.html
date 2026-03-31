@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>LinkFlow</title>
   <meta name="theme-color" content="#eef3f8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="icon" href="favicon.ico" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -25,6 +29,7 @@
         <div class="btn-row">
           <button id="loginBtn" class="primary">Log In</button>
         </div>
+        <div id="authInlineStatus" class="inline-status hidden"></div>
       </div>
 
       <div id="signupPane" class="auth-pane hidden">
@@ -35,6 +40,7 @@
         <div class="btn-row">
           <button id="signupBtn" class="primary">Create Account</button>
         </div>
+        <div id="signupInlineStatus" class="inline-status hidden"></div>
       </div>
       <div class="helper mt12">Use one email per contractor account.</div>
     </div>
@@ -127,9 +133,9 @@
         <div class="glass contractor-hero contractor-hero-pop">
         <div class="contractor-hero-bg"></div>
         <div class="contractor-hero-inner">
-          <div class="eyebrow">Dashboard</div>
-          <h1 id="contractorBizName" class="contractor-h1">Your Jobs</h1>
-          <p class="sub contractor-hero-sub">Manage incoming bookings and stay organized.</p>
+          <div class="eyebrow">Service Builder</div>
+          <h1 class="contractor-h1">Edit Service</h1>
+          <p class="sub contractor-hero-sub">Update pricing, booking flow, and customer questions.</p>
         </div>
       </div>
 
@@ -264,6 +270,6 @@
   </div>
 
   <script>window.bootFailsafe=setTimeout(function(){document.body&&document.body.classList.remove("app-loading")},6000)</script>
-  <script type="module" src="app.js"></script>
+  <script type="module" src="app_fixed.js"></script>
 </body>
 </html>
