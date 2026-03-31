@@ -1052,3 +1052,51 @@ details[open] .expand-line-b{
 }
 
 #authInlineStatus,#signupInlineStatus,#customerSubmitError{margin:12px 0 0;}
+
+
+.compact-screen-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin:4px 0 14px;
+}
+
+.inside-card-head{
+  margin:0 0 18px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--line);
+}
+
+.page-title{
+  margin:0 0 6px;
+  font-size:28px;
+  line-height:1.05;
+  color:var(--heading);
+}
+
+.modal-head{
+  margin-bottom:16px;
+}
+
+#screen-settings .editor-card{
+  padding-top:20px;
+}
+
+#quoteModeToggle{
+  min-height:unset;
+}
+
+@media(max-width:760px){
+  .compact-screen-head{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .compact-screen-head .small-btn,
+  .compact-screen-head .primary{
+    width:100%;
+  }
+  .page-title{
+    font-size:24px;
+  }
+}
