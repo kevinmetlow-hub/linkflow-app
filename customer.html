@@ -4,7 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Book Service</title>
-  <meta name="theme-color" content="#eef3f8" />
+  <meta name="theme-color" content="#0a0f1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="LinkFlow" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-512.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -78,7 +84,6 @@
           <canvas id="customerSig" class="signature" width="900" height="300"></canvas>
           <div class="btn-row"><button id="clearCustomerSigBtn">Clear Signature</button><button id="saveWorkOrderBtn">Save / Print Work Order</button></div>
         </div>
-        <div id="customerSubmitError" class="inline-status hidden"></div>
         <div class="btn-row">
           <button id="finishBookingBtn" class="primary">Confirm Booking</button>
           <button data-step="customerStep3">Back</button>
