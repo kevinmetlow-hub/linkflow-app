@@ -1083,3 +1083,85 @@ body:not(.app-loading) .app-boot-screen{display:none}
 .doc{
   overflow:hidden;
 }
+
+
+/* Home screen / installed app polish */
+@media (display-mode: standalone) {
+  body{
+    overscroll-behavior:none;
+  }
+  .app-shell,
+  .customer-shell{
+    padding-top: max(18px, env(safe-area-inset-top));
+  }
+  .bottom-nav{
+    bottom: max(14px, env(safe-area-inset-bottom));
+  }
+  .app-header{
+    top: max(12px, env(safe-area-inset-top));
+  }
+}
+
+/* Job detail modal should feel tighter without top hero */
+#jobDetailModal .modal-panel{
+  padding-top: 18px;
+}
+#jobDetailModal .section-head{
+  margin-top: 0;
+}
+
+/* Service cards as true tappable buttons */
+button.service-card{
+  width:100%;
+  text-align:left;
+  appearance:none;
+  -webkit-appearance:none;
+}
+.service-clickable{
+  cursor:pointer;
+  width:100%;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.service-clickable:hover{
+  border-color:rgba(68,200,255,.18);
+  transform:translateY(-2px);
+}
+.service-clickable:active{
+  transform:scale(.995);
+}
+.service-clickable:focus-visible{
+  outline:none;
+  border-color:rgba(68,200,255,.28);
+  box-shadow:0 0 0 4px rgba(68,200,255,.10), var(--shadow-soft);
+}
+.service-card-compact{
+  padding:12px;
+  gap:10px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.01)),
+    var(--panel-2);
+}
+.service-card-compact .service-header{
+  padding:12px 14px;
+  border-radius:16px;
+}
+.service-card-compact .service-title{
+  font-size:17px;
+}
+.service-card-compact .service-meta{
+  font-size:11px;
+  letter-spacing:.10em;
+}
+.service-card-compact .service-price{
+  font-size:15px;
+  padding:6px 10px;
+}
+.service-card-compact .service-preview-line{
+  margin-top:0;
+  padding:0 4px;
+}
+.service-preview-mini{
+  color:var(--muted);
+  font-size:12px;
+}
