@@ -106,7 +106,7 @@ async function ensureContext(){
   const {data:business}=await supabase.from("businesses").select("*").eq("user_id",state.user.id).maybeSingle();
   if(!business){showOnly("onboardingSection"); return}
   state.business={id:business.id,name:business.name||"",phone:business.phone||"",slug:business.slug||"",mode:business.mode||"both",agreementTitle:business.agreement_title||"Service Agreement",logoData:business.logo_data||""};
-  await loadServicesFromSupabase(business.id); await loadJobsFromSupabase(business.id); renderEverything(); showOnly("appShell"); switchScreen("home"); updateHero("home");
+  await loadServicesFromSupabase(business.id); await loadJobsFromSupabase(business.id); renderEverything(); showOnly("appShell"); switchScreen("home");
 }
 
 async function createBusinessFromOnboarding(){
@@ -330,7 +330,7 @@ async function saveSettings(){await requireUser(); state.business.name=qs("bizNa
   if(qs("bizLogo")) qs("bizLogo").value = "";
   alert("Profile saved.")
 }
-function switchScreen(name){qsa(".screen").forEach(s=>s.classList.remove("active")); qs("screen-"+name)?.classList.add("active"); qsa(".nav-btn").forEach(b=>b.classList.remove("active")); document.querySelector(`.nav-btn[data-screen="${name}"]`)?.classList.add("active"); updateHero(name)}
+function switchScreen(name){qsa(".screen").forEach(s=>s.classList.remove("active")); qs("screen-"+name)?.classList.add("active"); qsa(".nav-btn").forEach(b=>b.classList.remove("active")); document.querySelector(`.nav-btn[data-screen="${name}"]`)?.classList.add("active")}
 function renderEverything(){renderSharedBits(); renderMetrics(); renderJobs(); renderServicesList()}
 function applyModifier(total,t,v){v=Number(v||0); if(t==="fixed")return total+v; if(t==="percent")return total+(total*(v/100)); if(t==="multiplier")return total*v; return total}
 function modifierText(o){const v=Number(o.modifierValue||0); if(o.modifierType==="fixed")return `${v>=0?"+":""}${money(v)}`; if(o.modifierType==="percent")return `${v>=0?"+":""}${v}%`; if(o.modifierType==="multiplier")return `x${v}`; return ""}
