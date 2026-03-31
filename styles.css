@@ -653,3 +653,39 @@ button.primary,
     align-items:flex-start;
   }
 }
+
+
+/* Cleaner single-header app */
+.app-header{
+  justify-content:flex-start !important;
+}
+
+/* Better order card hit area */
+.job-open-hit{
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.job-open-hit > div{
+  pointer-events:none;
+}
+.job-open-hit{
+  min-height:96px;
+  display:flex;
+  align-items:center;
+}
+.job-open-hit:active{
+  transform:scale(.995);
+}
+
+/* Profile utility area */
+.profile-top-actions{
+  align-items:flex-start;
+}
+.profile-top-actions button{
+  min-width:150px;
+}
+
+/* Remove visual dead space from home */
+#screen-home .section-head{
+  margin-top:6px;
+}
