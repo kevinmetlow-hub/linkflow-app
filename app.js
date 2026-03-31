@@ -31,6 +31,30 @@ const screenStorageKey=()=>localKey("current_screen");
 
 function showOnly(id){["authSection","onboardingSection","appShell"].forEach(x=>qs(x)?.classList.add("hidden")); qs(id)?.classList.remove("hidden")}
 function stopBoot(){ document.body.classList.remove("app-loading"); try{ clearTimeout(window.bootFailsafe); }catch(e){} }
+function resetAppState(){
+  state.user=null;
+  state.business={id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement",logoData:""};
+  state.services=[];
+  state.jobs=[];
+  state.editingServiceId=null;
+  state.editingDraft=null;
+  state.currentQuote=0;
+  state.currentServiceId=null;
+  state.latestAnswers=[];
+  state.activeJobId=null;
+  state.homeStatusFilter="scheduled";
+  state.jobExtras={};
+}
+function showLoginScreen(){
+  showOnly("authSection");
+  qsa('[data-auth-tab]').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-auth-tab') === 'login'));
+  qs('signupPane')?.classList.add('hidden');
+  qs('loginPane')?.classList.remove('hidden');
+  setInlineStatus('authInlineStatus', '');
+  setInlineStatus('signupInlineStatus', '');
+  if(qs('loginPassword')) qs('loginPassword').value = '';
+  if(qs('signupPassword')) qs('signupPassword').value = '';
+}
 function saveLocalExtras(){
   try{
     if(!state.user) return;
@@ -142,17 +166,23 @@ async function signIn(){
   }
 }
 async function signOut(){
+  const btn = qs('logoutBtn');
+  setButtonLoading('logoutBtn', true, 'Logging out...');
+  const oldKey = screenStorageKey();
   try{
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' });
   }catch(e){
     console.warn("signOut warning", e);
   }
-  state.user=null;
-  state.business={id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement",logoData:""};
-  state.services=[]; state.jobs=[]; state.editingServiceId=null; state.editingDraft=null; state.currentQuote=0; state.currentServiceId=null; state.latestAnswers=[]; state.activeJobId=null; state.homeStatusFilter="scheduled"; state.jobExtras={};
-  try{ localStorage.removeItem(screenStorageKey()); }catch(e){}
-  showOnly("authSection");
+  try{ localStorage.removeItem(oldKey); }catch(e){}
+  resetAppState();
+  showLoginScreen();
   stopBoot();
+  setButtonLoading('logoutBtn', false);
+  const path = (window.location.pathname || '').toLowerCase();
+  if(!path.endsWith('/index.html') && !path.endsWith('/')){
+    window.location.href = './index.html';
+  }
 }
 
 async function createBusinessFromOnboarding(){
@@ -478,7 +508,8 @@ async function ensureContext(){
   const user = data?.user || null;
   state.user = user;
   if(!user){
-    showOnly('authSection');
+    resetAppState();
+    showLoginScreen();
     return;
   }
 
@@ -822,7 +853,15 @@ async function init(){
       const {data}=await supabase.auth.getSession();
       if(data.session?.user) await ensureContext();
       else showOnly("authSection");
-      supabase.auth.onAuthStateChange(async()=>{ await ensureContext(); });
+      supabase.auth.onAuthStateChange(async(event, session)=>{
+        if(event === 'SIGNED_OUT' || !session?.user){
+          resetAppState();
+          showLoginScreen();
+          stopBoot();
+          return;
+        }
+        await ensureContext();
+      });
     }
     if(qs("customerBizName")){
       bindCustomerEvents();
