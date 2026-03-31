@@ -266,21 +266,19 @@ function renderJobs(){
 }
 function openJobDetails(id){const j=state.jobs.find(x=>x.id===id); if(!j)return; state.activeJobId=id; qs("jobDetailTitle").textContent=j.customer||"Order"; qs("jobDetailDate").textContent=formatDisplayDate(j.scheduleDate,j.scheduleTime); qs("jobDetailCustomer").textContent=j.customer||""; qs("jobDetailPhone").textContent=j.phone||""; qs("jobDetailAddress").textContent=j.address||""; qs("jobDetailService").textContent=j.serviceName||""; qs("jobDetailPrice").textContent=j.mode==="estimate"?"Appointment":money(j.price); qs("jobDetailStatus").textContent=statusLabel(j.status); qs("jobDetailAnswers").innerHTML=(j.answers||[]).length?j.answers.map(a=>`<div>${escapeHtml(a.question)}: ${escapeHtml(a.answer)}</div>`).join(""):"No saved answers."; openModal("jobDetailModal")}
 function bindServiceCardInteractions(){
-  window.__openServiceFromCard = (id) => { if(id) openServiceEditor(id); };
-  qsa("[data-open-service]").forEach(card => {
+  const nodes=[...qsa("[data-open-service]"), ...qsa("[data-edit-service]")];
+  nodes.forEach(card => {
     if(card.dataset.boundClick === "1") return;
     card.dataset.boundClick = "1";
-    card.addEventListener("click", (e) => {
-      e.preventDefault();
-      const id = card.getAttribute("data-open-service");
+    const open = (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      const id = card.getAttribute("data-open-service") || card.getAttribute("data-edit-service");
       if(id) openServiceEditor(id);
-    });
+    };
+    card.addEventListener("click", open);
     card.addEventListener("keydown", (e) => {
-      if(e.key === "Enter" || e.key === " "){
-        e.preventDefault();
-        const id = card.getAttribute("data-open-service");
-        if(id) openServiceEditor(id);
-      }
+      if(e.key === "Enter" || e.key === " ") open(e);
     });
   });
 }
@@ -457,62 +455,346 @@ async function publicLoadBySlug(){
 }
 function bindCustomerEvents(){qs("custService")?.addEventListener("change",renderCustomerQuestions); qs("continueCustomerBtn")?.addEventListener("click",()=>{const svc=state.services.find(s=>s.id===qs("custService").value); if(!svc)return; const r=collectAnswersAndPrice(svc); state.currentQuote=r.total; state.latestAnswers=r.answers; const mode=effectiveModeForService(svc); qs("resultTitle").textContent=mode==="estimate"?"Book Appointment":"Your Quote"; qs("quotePrice").textContent=mode==="estimate"?"Appointment":money(r.total); qs("quoteBreakdown").textContent=mode==="estimate"?"This service is booked by appointment. Choose a time to continue.":r.parts.join(" · "); qs("continueScheduleBtn").textContent=mode==="estimate"?"Book Appointment":"Accept & Schedule"; goStep("customerStep2")}); qs("continueScheduleBtn")?.addEventListener("click",()=>goStep("customerStep3")); qs("continueAgreementBtn")?.addEventListener("click",()=>{const svc=state.services.find(s=>s.id===qs("custService").value), mode=effectiveModeForService(svc); qs("agreementHeading").textContent=state.business.agreementTitle; qs("docBizName").textContent=state.business.name; qs("docCustName").textContent=qs("custName").value||"Customer"; qs("docService").textContent=svc?.name||""; qs("docPrice").textContent=mode==="estimate"?"Appointment Request":money(state.currentQuote); qs("docAddress").textContent=qs("custAddress").value||""; qs("docSchedule").textContent=formatDisplayDate(normalizeScheduleDate(qs("scheduleDate").value),qs("scheduleTime").value); goStep("customerStep4")}); qs("finishBookingBtn")?.addEventListener("click",submitPublicBooking); qs("restartCustomerBtn")?.addEventListener("click",()=>goStep("customerStep1")); qs("newTestBookingBtn")?.addEventListener("click",()=>window.location.reload()); qs("clearCustomerSigBtn")?.addEventListener("click",()=>clearSig("customerSig")); qs("saveWorkOrderBtn")?.addEventListener("click",saveWorkOrderCurrent); qs("saveWorkOrderBtnDone")?.addEventListener("click",saveWorkOrderCurrent); qsa("[data-step]").forEach(btn=>btn.addEventListener("click",()=>goStep(btn.dataset.step)))}
 
-function bindContractorEvents(){
-  // Auth buttons
-  qs("loginBtn")?.addEventListener("click", signIn);
-  qs("signupBtn")?.addEventListener("click", signUp);
-  qs("logoutBtn")?.addEventListener("click", signOut);
 
-  // Onboarding
-  qs("finishOnboardingBtn")?.addEventListener("click", createBusinessFromOnboarding);
+function signatureHasInk(id){
+  const canvas = qs(id);
+  return !!(canvas && canvas.dataset.hasInk === "1");
+}
 
-  // Navigation
-  qsa(".nav-btn").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const screen = btn.getAttribute("data-screen");
-      if(screen) switchScreen(screen);
-    });
-  });
-
-  // Service edit buttons (delegated)
-  document.addEventListener("click", (e)=>{
-    const editBtn = e.target.closest("[data-edit-service]");
-    if(editBtn){
-      const id = editBtn.getAttribute("data-edit-service");
-      if(id) openServiceEditor(id);
-    }
-  });
+function clearSig(id){
+  const canvas = qs(id);
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const width = rect.width || canvas.width || 900;
+  const height = rect.height || canvas.height || 300;
+  canvas.width = Math.max(1, Math.floor(width * ratio));
+  canvas.height = Math.max(1, Math.floor(height * ratio));
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.scale(ratio, ratio);
+  ctx.clearRect(0,0,width,height);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#111827";
+  canvas.dataset.hasInk = "0";
 }
 
 function initSignature(id){
-  const canvas = document.getElementById(id);
-  if(!canvas) return;
-
-  const ctx = canvas.getContext("2d");
+  const canvas = qs(id);
+  if(!canvas || canvas.dataset.signatureReady === "1") return;
+  canvas.dataset.signatureReady = "1";
+  const getPoint = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const touch = event.touches?.[0] || event.changedTouches?.[0];
+    const clientX = touch ? touch.clientX : event.clientX;
+    const clientY = touch ? touch.clientY : event.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  };
   let drawing = false;
-
-  function start(e){
+  let last = null;
+  const start = (event) => {
+    event.preventDefault();
     drawing = true;
-    ctx.beginPath();
-    const rect = canvas.getBoundingClientRect();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-  }
-
-  function draw(e){
+    last = getPoint(event);
+  };
+  const move = (event) => {
     if(!drawing) return;
-    const rect = canvas.getBoundingClientRect();
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    event.preventDefault();
+    const point = getPoint(event);
+    const ctx = canvas.getContext("2d");
+    ctx.beginPath();
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(point.x, point.y);
     ctx.stroke();
-  }
-
-  function stop(){
+    last = point;
+    canvas.dataset.hasInk = "1";
+  };
+  const end = () => {
     drawing = false;
-  }
+    last = null;
+  };
+  canvas.addEventListener("pointerdown", start);
+  canvas.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", end);
+  canvas.addEventListener("touchstart", start, { passive:false });
+  canvas.addEventListener("touchmove", move, { passive:false });
+  canvas.addEventListener("touchend", end, { passive:false });
+  window.addEventListener("resize", () => {
+    const hadInk = signatureHasInk(id);
+    const data = hadInk ? canvas.toDataURL("image/png") : "";
+    clearSig(id);
+    if(data){
+      const img = new Image();
+      img.onload = () => {
+        const ctx = canvas.getContext("2d");
+        const ratio = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        ctx.drawImage(img, 0, 0, rect.width || canvas.width / ratio, rect.height || canvas.height / ratio);
+        canvas.dataset.hasInk = "1";
+      };
+      img.src = data;
+    }
+  });
+  clearSig(id);
+}
 
-  canvas.addEventListener("mousedown", start);
-  canvas.addEventListener("mousemove", draw);
-  canvas.addEventListener("mouseup", stop);
-  canvas.addEventListener("mouseleave", stop);
+async function updateJobStatus(id, status){
+  const job = state.jobs.find(x => x.id === id);
+  if(!job) return;
+  job.status = status;
+  state.jobExtras[id] = {
+    ...(state.jobExtras[id] || {}),
+    status,
+    answers: job.answers || [],
+    agreementHtml: job.agreementHtml || "",
+    signatureData: state.jobExtras[id]?.signatureData || ""
+  };
+  saveLocalExtras();
+  await upsertJobMeta(id, {
+    status,
+    answers: job.answers || [],
+    agreementHtml: job.agreementHtml || "",
+    signatureData: state.jobExtras[id]?.signatureData || ""
+  });
+  renderEverything();
+  openJobDetails(id);
+}
+
+async function ensureContext(){
+  try{
+    const { data } = await supabase.auth.getUser();
+    state.user = data.user || null;
+    if(!state.user){
+      showOnly("authSection");
+      return;
+    }
+    loadLocalExtras();
+    const { data: business, error } = await supabase.from("businesses").select("*").eq("user_id", state.user.id).maybeSingle();
+    if(error) throw error;
+    if(!business){
+      renderTemplatePreview();
+      showOnly("onboardingSection");
+      return;
+    }
+    state.business = {
+      id: business.id,
+      name: business.name || "",
+      phone: business.phone || "",
+      slug: business.slug || "",
+      mode: business.mode || "both",
+      agreementTitle: business.agreement_title || "Service Agreement",
+      logoData: business.logo_data || ""
+    };
+    await loadServicesFromSupabase(state.business.id);
+    await loadJobsFromSupabase(state.business.id);
+    renderEverything();
+    const savedScreen = localStorage.getItem(screenStorageKey()) || "home";
+    showOnly("appShell");
+    switchScreen(["home","services","settings","editor"].includes(savedScreen) ? savedScreen : "home");
+    setInlineStatus("authInlineStatus", "");
+    setInlineStatus("signupInlineStatus", "");
+  }catch(e){
+    console.error("ensureContext failed", e);
+    setInlineStatus("authInlineStatus", e?.message || "Could not load your account.", "error");
+    showOnly("authSection");
+  }
+}
+
+async function submitPublicBooking(){
+  setInlineStatus("customerSubmitError", "");
+  const name = (qs("custName")?.value || "").trim();
+  const phone = (qs("custPhone")?.value || "").trim();
+  const address = (qs("custAddress")?.value || "").trim();
+  const serviceId = qs("custService")?.value || state.currentServiceId;
+  const service = state.services.find(s => s.id === serviceId);
+  const scheduleDate = normalizeScheduleDate(qs("scheduleDate")?.value || "");
+  const scheduleTime = (qs("scheduleTime")?.value || "").trim();
+  if(!name || !phone || !address || !service){
+    setInlineStatus("customerSubmitError", "Please complete your name, phone, address, and service before booking.", "error");
+    return;
+  }
+  if(!scheduleDate || !scheduleTime){
+    setInlineStatus("customerSubmitError", "Please choose a date and time window.", "error");
+    return;
+  }
+  const signatureData = signatureHasInk("customerSig") ? qs("customerSig").toDataURL("image/png") : "";
+  const mode = effectiveModeForService(service);
+  const agreementHtml = buildAgreementHtml({
+    agreementTitle: state.business.agreementTitle,
+    business: state.business.name,
+    customer: name,
+    service: service.name,
+    priceType: mode === "estimate" ? "Appointment Request" : money(state.currentQuote),
+    address,
+    schedule: formatDisplayDate(scheduleDate, scheduleTime),
+    signatureData,
+    logoData: state.business.logoData || ""
+  });
+  setButtonLoading("finishBookingBtn", true, "Saving...");
+  try{
+    const { data, error } = await supabase.from("jobs").insert({
+      business_id: state.business.id,
+      customer_name: name,
+      phone,
+      address,
+      service_name: service.name,
+      price: Number(state.currentQuote || 0),
+      mode,
+      schedule_date: scheduleDate,
+      schedule_time: scheduleTime
+    }).select().single();
+    if(error) throw error;
+    await upsertJobMeta(data.id, {
+      status: "scheduled",
+      answers: state.latestAnswers || [],
+      agreementHtml,
+      signatureData
+    });
+    qs("confirmText").textContent = `${name}, your ${service.name} is booked for ${formatDisplayDate(scheduleDate, scheduleTime)}.`;
+    goStep("customerStep5");
+  }catch(e){
+    console.error("submitPublicBooking failed", e);
+    setInlineStatus("customerSubmitError", e?.message || "Booking could not be submitted.", "error");
+  }finally{
+    setButtonLoading("finishBookingBtn", false);
+  }
+}
+
+function bindContractorEvents(){
+  if(document.body?.dataset.contractorEventsBound === "1") return;
+  document.body.dataset.contractorEventsBound = "1";
+
+  qsa("[data-auth-tab]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.authTab;
+      qsa("[data-auth-tab]").forEach(x => x.classList.toggle("active", x === btn));
+      qs("loginPane")?.classList.toggle("hidden", tab !== "login");
+      qs("loginPane")?.classList.toggle("active", tab === "login");
+      qs("signupPane")?.classList.toggle("hidden", tab !== "signup");
+      qs("signupPane")?.classList.toggle("active", tab === "signup");
+      setInlineStatus("authInlineStatus", "");
+      setInlineStatus("signupInlineStatus", "");
+    });
+  });
+
+  qs("loginBtn")?.addEventListener("click", signIn);
+  qs("signupBtn")?.addEventListener("click", signUp);
+  qs("loginPassword")?.addEventListener("keydown", e => { if(e.key === "Enter") signIn(); });
+  qs("signupPassword")?.addEventListener("keydown", e => { if(e.key === "Enter") signUp(); });
+
+  qsa(".nav-btn[data-screen]").forEach(btn => btn.addEventListener("click", () => {
+    const screen = btn.dataset.screen;
+    switchScreen(screen);
+    try{ localStorage.setItem(screenStorageKey(), screen); }catch(e){}
+  }));
+
+  qsa("[data-template]").forEach(btn => btn.addEventListener("click", () => {
+    state.selectedTemplate = btn.dataset.template || "pressure_washing";
+    qsa("[data-template]").forEach(x => x.classList.toggle("active", x === btn));
+    renderTemplatePreview();
+  }));
+
+  qs("finishOnboardingBtn")?.addEventListener("click", createBusinessFromOnboarding);
+  qs("newServiceBtn")?.addEventListener("click", () => {
+    const id = uid("svc");
+    const service = { id, name:"New Service", base:0, mode:"quote", questions:[] };
+    state.services.push(service);
+    openServiceEditor(id);
+  });
+  qs("backToServicesBtn")?.addEventListener("click", () => {
+    switchScreen("services");
+    try{ localStorage.setItem(screenStorageKey(), "services"); }catch(e){}
+  });
+  qs("addQuestionBtn")?.addEventListener("click", addQuestion);
+  qs("saveServiceBtn")?.addEventListener("click", saveServiceEditor);
+  qs("deleteServiceBtn")?.addEventListener("click", deleteService);
+  qs("saveSettingsBtn")?.addEventListener("click", saveSettings);
+  qs("logoutBtn")?.addEventListener("click", signOut);
+  qs("triggerLogoUploadBtn")?.addEventListener("click", () => qs("bizLogo")?.click());
+  qs("copyBookingLinkBtn")?.addEventListener("click", async () => {
+    const link = `${window.location.origin}/customer.html?slug=${state.business.slug || ""}`;
+    try{
+      await navigator.clipboard.writeText(link);
+      const notice = qs("bookingLinkNotice");
+      if(notice){
+        const old = notice.textContent;
+        notice.textContent = `Copied: ${link}`;
+        setTimeout(() => { notice.textContent = old; }, 1800);
+      }
+    }catch(e){
+      alert(link);
+    }
+  });
+
+  qsa("[data-service-mode]").forEach(btn => btn.addEventListener("click", () => {
+    qsa("[data-service-mode]").forEach(x => x.classList.toggle("active", x === btn));
+    if(qs("editServiceMode")) qs("editServiceMode").value = btn.dataset.serviceMode || "quote";
+  }));
+
+  document.addEventListener("click", (e) => {
+    const openJobBtn = e.target.closest("[data-open-job]");
+    if(openJobBtn){
+      openJobDetails(openJobBtn.getAttribute("data-open-job"));
+      return;
+    }
+    const closeBtn = e.target.closest("[data-close-modal]");
+    if(closeBtn){
+      closeModal(closeBtn.getAttribute("data-close-modal"));
+      return;
+    }
+    const editBtn = e.target.closest("[data-edit-service],[data-open-service]");
+    if(editBtn){
+      const id = editBtn.getAttribute("data-edit-service") || editBtn.getAttribute("data-open-service");
+      if(id) openServiceEditor(id);
+      return;
+    }
+    const addOpt = e.target.closest("[data-add-option]");
+    if(addOpt){ addOption(addOpt.getAttribute("data-add-option")); return; }
+    const deleteQuestion = e.target.closest("[data-delete-question]");
+    if(deleteQuestion){
+      if(!state.editingDraft) return;
+      syncDraft();
+      const qid = deleteQuestion.getAttribute("data-delete-question");
+      state.editingDraft.questions = (state.editingDraft.questions || []).filter(q => q.id !== qid);
+      commitDraft();
+      renderQuestionEditor(state.editingDraft);
+      return;
+    }
+    const deleteOption = e.target.closest("[data-delete-option]");
+    if(deleteOption){
+      if(!state.editingDraft) return;
+      syncDraft();
+      const [qid, oid] = (deleteOption.getAttribute("data-delete-option") || "").split("__");
+      const q = state.editingDraft.questions.find(x => x.id === qid);
+      if(q){ q.options = (q.options || []).filter(o => o.id !== oid); }
+      commitDraft();
+      renderQuestionEditor(state.editingDraft);
+      return;
+    }
+    const typeBtn = e.target.closest("[data-question-type]");
+    if(typeBtn){
+      const qid = typeBtn.getAttribute("data-question-id");
+      const type = typeBtn.getAttribute("data-question-type");
+      updateQuestionType(qid, type);
+      return;
+    }
+    const statusTab = e.target.closest("[data-status-filter]");
+    if(statusTab){
+      state.homeStatusFilter = statusTab.getAttribute("data-status-filter") || "scheduled";
+      qsa("[data-status-filter]").forEach(tab => tab.classList.toggle("active", tab === statusTab));
+      renderJobs();
+    }
+  });
+
+  qs("jobCallBtn")?.addEventListener("click", () => openCall(state.jobs.find(j => j.id === state.activeJobId)));
+  qs("jobTextBtn")?.addEventListener("click", () => openSms(state.jobs.find(j => j.id === state.activeJobId), "generic"));
+  qs("jobConfirmTextBtn")?.addEventListener("click", () => openSms(state.jobs.find(j => j.id === state.activeJobId), "confirm"));
+  qs("jobViewAgreementBtn")?.addEventListener("click", () => viewAgreement(state.activeJobId));
+  qs("jobPrintAgreementBtn")?.addEventListener("click", () => printAgreement(state.activeJobId));
+  qs("jobCompleteBtn")?.addEventListener("click", () => updateJobStatus(state.activeJobId, "completed"));
+  qs("jobCancelBtn")?.addEventListener("click", () => updateJobStatus(state.activeJobId, "canceled"));
 }
 
 async function init(){
@@ -564,11 +846,3 @@ function setButtonLoading(id, isLoading, loadingText="Loading..."){
   }
 }
 
-
-document.addEventListener("DOMContentLoaded", () => {
-  try {
-    bindContractorEvents();
-  } catch(e){
-    console.error("bind error", e);
-  }
-});
