@@ -89,37 +89,66 @@ function printAgreement(id){const j=state.jobs.find(x=>x.id===id); if(j?.agreeme
 function openSms(job,kind){if(!job?.phone)return alert("No phone number."); const body=kind==="confirm"?`Hi ${job.customer}, your ${job.serviceName} is booked for ${formatDisplayDate(job.scheduleDate,job.scheduleTime)}. Reply here with any questions.`:`Hi ${job.customer}, regarding your ${job.serviceName} booked for ${formatDisplayDate(job.scheduleDate,job.scheduleTime)}.`; window.location.href=`sms:${job.phone}&body=${encodeURIComponent(body)}`}
 function openCall(job){if(!job?.phone)return alert("No phone number."); window.location.href=`tel:${job.phone}`}
 
-async function signUp(){const email=qs("signupEmail").value.trim(), password=qs("signupPassword").value; const {error}=await supabase.auth.signUp({email,password}); if(error)return alert(error.message); const r=await supabase.auth.signInWithPassword({email,password}); if(r.error)alert("Account created. Check your email if confirmation is required.");}
-async function signIn(){const email=qs("loginEmail").value.trim(), password=qs("loginPassword").value; const {error}=await supabase.auth.signInWithPassword({email,password}); if(error)alert(error.message)}
-async function signOut(){
-  try{
-    await supabase.auth.signOut();
-  }catch(e){
-    console.warn("signOut warning", e);
+async function signUp(){
+  const email=(qs("signupEmail")?.value||"").trim();
+  const password=qs("signupPassword")?.value||"";
+  if(!email || !password){
+    setInlineStatus("signupInlineStatus","Enter your email and password.","error");
+    return;
   }
-
-  state.user = null;
-  state.business = {id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement",logoData:""};
-  state.services = [];
-  state.jobs = [];
-  state.editingServiceId = null;
-  state.editingDraft = null;
-  state.currentQuote = 0;
-  state.currentServiceId = null;
-  state.latestAnswers = [];
-  state.activeJobId = null;
-  state.currentScreen = "home";
-  state.homeStatusFilter = "scheduled";
-  try{ localStorage.removeItem(screenStorageKey()) }catch(e){}
-
-  closeModal?.("jobDetailModal");
-  closeModal?.("agreementModal");
-  showOnly("authSection");
-  setInlineStatus("authInlineStatus", "");
-  setButtonLoading("loginBtn", false);
+  setInlineStatus("signupInlineStatus","");
+  setButtonLoading("signupBtn", true, "Creating...");
+  try{
+    const { error } = await supabase.auth.signUp({ email, password });
+    if(error) throw error;
+    const r = await supabase.auth.signInWithPassword({ email, password });
+    if(r.error){
+      setInlineStatus("signupInlineStatus","Account created. Check your email if confirmation is required.","info");
+      return;
+    }
+    await ensureContext();
+  }catch(err){
+    setInlineStatus("signupInlineStatus", err?.message || "Could not create account.", "error");
+  }finally{
+    setButtonLoading("signupBtn", false);
+  }
 }
+async function signIn(){
+  const email=(qs("loginEmail")?.value||"").trim();
+  const password=qs("loginPassword")?.value||"";
+  if(!email || !password){
+    setInlineStatus("authInlineStatus","Enter your email and password.","error");
+    return;
+  }
+  setInlineStatus("authInlineStatus","");
+  setButtonLoading("loginBtn", true, "Logging in...");
+  try{
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if(error) throw error;
+    await ensureContext();
+  }catch(err){
+    setInlineStatus("authInlineStatus", err?.message || "Login failed.", "error");
+  }finally{
+    setButtonLoading("loginBtn", false);
+  }
+}
+async function signOut(){await supabase.auth.signOut()}
 
-
+async function ensureContext(){
+  const {data}=await supabase.auth.getUser(); state.user=data.user||null;
+  if(!state.user){
+    state.business={id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement"};
+    state.services=[]; state.jobs=[]; state.jobExtras={};
+    state.homeStatusFilter="scheduled";
+    showOnly("authSection");
+    return;
+  }
+  loadLocalExtras();
+  const {data:business}=await supabase.from("businesses").select("*").eq("user_id",state.user.id).maybeSingle();
+  if(!business){showOnly("onboardingSection"); return}
+  state.business={id:business.id,name:business.name||"",phone:business.phone||"",slug:business.slug||"",mode:business.mode||"both",agreementTitle:business.agreement_title||"Service Agreement",logoData:business.logo_data||""};
+  await loadServicesFromSupabase(business.id); await loadJobsFromSupabase(business.id); renderEverything(); showOnly("appShell"); switchScreen("home");
+}
 
 async function createBusinessFromOnboarding(){
   await requireUser();
@@ -343,7 +372,7 @@ async function saveSettings(){await requireUser(); state.business.name=qs("bizNa
   alert("Profile saved.")
 }
 function switchScreen(name){qsa(".screen").forEach(s=>s.classList.remove("active")); qs("screen-"+name)?.classList.add("active"); qsa(".nav-btn").forEach(b=>b.classList.remove("active")); document.querySelector(`.nav-btn[data-screen="${name}"]`)?.classList.add("active")}
-function renderEverything(){renderSharedBits(); renderMetrics(); renderJobs(); renderServicesList(); if (typeof bindServiceCardInteractions === "function") bindServiceCardInteractions()}
+function renderEverything(){renderSharedBits(); renderMetrics(); renderJobs(); renderServicesList()}
 function applyModifier(total,t,v){v=Number(v||0); if(t==="fixed")return total+v; if(t==="percent")return total+(total*(v/100)); if(t==="multiplier")return total*v; return total}
 function modifierText(o){const v=Number(o.modifierValue||0); if(o.modifierType==="fixed")return `${v>=0?"+":""}${money(v)}`; if(o.modifierType==="percent")return `${v>=0?"+":""}${v}%`; if(o.modifierType==="multiplier")return `x${v}`; return ""}
 function renderCustomerServices(){const sel=qs("custService"); if(!sel)return; sel.innerHTML=state.services.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join(""); state.currentServiceId=state.services[0]?.id||null; renderCustomerQuestions()}
@@ -356,9 +385,15 @@ async function submitPublicBooking(){const svc=state.services.find(s=>s.id===qs(
 function initSignature(id){const c=qs(id); if(!c)return; const x=c.getContext("2d"); x.lineWidth=3.5; x.lineCap="round"; x.lineJoin="round"; x.fillStyle="#ffffff"; x.fillRect(0,0,c.width,c.height); const pos=e=>{const r=c.getBoundingClientRect(), p=e.touches?e.touches[0]:e; return {x:(p.clientX-r.left)*(c.width/r.width), y:(p.clientY-r.top)*(c.height/r.height)}}; let d=false; const start=e=>{d=true; const p=pos(e); x.beginPath(); x.moveTo(p.x,p.y); e.preventDefault()}, move=e=>{if(!d)return; const p=pos(e); x.lineTo(p.x,p.y); x.stroke(); e.preventDefault()}, end=()=>d=false; c.addEventListener("pointerdown",start); c.addEventListener("pointermove",move); window.addEventListener("pointerup",end); c.addEventListener("touchstart",start,{passive:false}); c.addEventListener("touchmove",move,{passive:false}); window.addEventListener("touchend",end)}
 function clearSig(id){const c=qs(id); if(!c)return; const x=c.getContext("2d"); x.clearRect(0,0,c.width,c.height); x.fillStyle="#ffffff"; x.fillRect(0,0,c.width,c.height)}
 
+function bindAuthEnterKeys(){
+  ["loginEmail","loginPassword"].forEach(id=>qs(id)?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault(); signIn();}}));
+  ["signupEmail","signupPassword"].forEach(id=>qs(id)?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault(); signUp();}}));
+}
+
 function bindContractorEvents(){
   qsa("[data-auth-tab]").forEach(btn=>btn.addEventListener("click",()=>{qsa("[data-auth-tab]").forEach(b=>b.classList.remove("active")); btn.classList.add("active"); const login=btn.getAttribute("data-auth-tab")==="login"; qs("loginPane").classList.toggle("hidden",!login); qs("signupPane").classList.toggle("hidden",login)}));
   qsa(".template-btn").forEach(btn=>btn.addEventListener("click",()=>{qsa(".template-btn").forEach(b=>b.classList.remove("active")); btn.classList.add("active"); state.selectedTemplate=btn.getAttribute("data-template"); if(!qs("onboardBusinessName").value.trim())qs("onboardBusinessName").value=PRESETS[state.selectedTemplate].businessName})); document.querySelector('.template-btn[data-template="pressure_washing"]')?.classList.add("active");
+  bindAuthEnterKeys();
   qs("signupBtn")?.addEventListener("click",signUp); qs("loginBtn")?.addEventListener("click",signIn); qs("logoutBtn")?.addEventListener("click",signOut); qs("finishOnboardingBtn")?.addEventListener("click",createBusinessFromOnboarding);
   qs("bizLogo")?.addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
@@ -437,15 +472,13 @@ function setInlineStatus(id, message, type="info"){
   const el = qs(id);
   if(!el) return;
   if(!message){
-    el.classList.add("hidden");
-    el.textContent = "";
     el.className = "inline-status hidden";
+    el.textContent = "";
     return;
   }
-  el.className = `inline-status ${type||"info"}`;
+  el.className = `inline-status ${type}`;
   el.textContent = message;
 }
-
 
 function setButtonLoading(id, isLoading, loadingText="Loading..."){
   const btn = qs(id);
