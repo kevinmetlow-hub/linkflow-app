@@ -219,19 +219,47 @@ function renderJobs(){
   if(recent) recent.innerHTML = filtered.length ? filtered.map(cardHtml).join("") : empty;
 }
 function openJobDetails(id){const j=state.jobs.find(x=>x.id===id); if(!j)return; state.activeJobId=id; qs("jobDetailTitle").textContent=j.customer||"Order"; qs("jobDetailDate").textContent=formatDisplayDate(j.scheduleDate,j.scheduleTime); qs("jobDetailCustomer").textContent=j.customer||""; qs("jobDetailPhone").textContent=j.phone||""; qs("jobDetailAddress").textContent=j.address||""; qs("jobDetailService").textContent=j.serviceName||""; qs("jobDetailPrice").textContent=j.mode==="estimate"?"Appointment":money(j.price); qs("jobDetailStatus").textContent=statusLabel(j.status); qs("jobDetailAnswers").innerHTML=(j.answers||[]).length?j.answers.map(a=>`<div>${escapeHtml(a.question)}: ${escapeHtml(a.answer)}</div>`).join(""):"No saved answers."; openModal("jobDetailModal")}
-function renderServicesList(){const box=qs("serviceList"); if(!box)return; box.innerHTML=state.services.length?state.services.map(s=>`<div class="service-card service-clickable" data-edit-service="${s.id}"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><strong>${escapeHtml(s.name)}</strong><div class="mini">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · Base ${money(s.base)}</div><div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div></div><button data-edit-service="${s.id}">Edit</button></div></div>`).join(""):'<div class="service-card service-clickable" data-edit-service="${s.id}"><div class="mini">No services yet.</div></div>'}
-function ensureQ(q){if(q.type==="yesno"&&(!q.options||q.options.length!==2))q.options=[{id:uid("opt"),label:"Yes",modifierType:"fixed",modifierValue:0},{id:uid("opt"),label:"No",modifierType:"fixed",modifierValue:0}]; if((q.type==="text"||q.type==="number")&&!q.options)q.options=[]; if(q.type==="multiple"&&(!q.options||!q.options.length))q.options=[{id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0}]}
-function syncDraft(){if(!state.editingDraft)return; state.editingDraft.name=qs("editServiceName").value.trim()||"Untitled Service"; state.editingDraft.base=parseFloat(qs("editServiceBase").value)||0; state.editingDraft.mode=qs("editServiceMode").value; state.editingDraft.questions=(state.editingDraft.questions||[]).map(q=>{const t=document.querySelector(`[data-q-type="${q.id}"]`)?.value||q.type; const l=document.querySelector(`[data-q-label="${q.id}"]`)?.value?.trim()||q.label; let opts=[]; if(t==="multiple"||t==="yesno"){opts=(q.options||[]).map(o=>{const k=`${q.id}__${o.id}`; return {...o,label:document.querySelector(`[data-opt-label="${k}"]`)?.value?.trim()||o.label,modifierType:"fixed",modifierValue:parseFloat(document.querySelector(`[data-opt-value="${k}"]`)?.value)||0}})} return {...q,label:l,type:t,options:opts}})}
-function commitDraft(){if(!state.editingDraft||!state.editingServiceId)return; const i=state.services.findIndex(s=>s.id===state.editingServiceId); if(i>=0)state.services[i]=clone(state.editingDraft)}
-function modifierFields(q,o){const k=`${q.id}__${o.id}`; return `<div class="simple-option-row"><div><input data-opt-label="${k}" value="${escapeHtml(o.label)}" placeholder="Choice label"></div><div><input type="number" step="0.01" data-opt-value="${k}" value="${o.modifierValue}" placeholder="0"></div><div><button data-delete-option="${k}" class="danger-btn">Remove</button></div></div>`}
+function renderServicesList(){
+  const box=qs("serviceList");
+  if(!box) return;
 
-function niceQuestionType(t){
-  if(t==="multiple") return "Multiple Choice";
-  if(t==="yesno") return "Yes / No";
-  if(t==="text") return "Text";
-  if(t==="number") return "Number";
-  return "Question";
+  if(!state.services.length){
+    box.innerHTML = '<div class="service-card"><div class="mini">No services yet.</div></div>';
+    return;
+  }
+
+  box.innerHTML = state.services.map(s => {
+    const previewCount = (s.questions || []).length;
+    const previewNames = (s.questions || []).slice(0, 2).map(q => escapeHtml(q.label || "")).join(" • ");
+    const previewText = previewCount === 0
+      ? "No questions yet"
+      : previewCount <= 2
+        ? previewNames
+        : `${previewNames} • +${previewCount - 2} more`;
+
+    return `
+      <div class="service-card service-clickable" role="button" tabindex="0" data-edit-service="${s.id}">
+        <div class="service-header">
+          <div class="service-title-wrap">
+            <div class="service-title">${escapeHtml(s.name)}</div>
+            <div class="service-meta">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"}</div>
+          </div>
+          <div class="service-price">${money(s.base)}</div>
+        </div>
+
+        <div class="service-preview-row">
+          <div class="service-preview-label">Questions</div>
+          <div class="service-preview-count">${previewCount} ${previewCount===1?"Question":"Questions"}</div>
+        </div>
+
+        <div class="service-questions service-questions-preview">
+          <div class="mini">${previewText}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
+
 
 function renderQuestionEditor(service){
   const box=qs("questionList"); if(!box)return;
@@ -399,8 +427,17 @@ function bindContractorEvents(){
       updateQuestionType(qid, type);
     }
   });
+
+  document.addEventListener("keydown", e => {
+    const card = e.target.closest("[data-edit-service]");
+    if(card && (e.key === "Enter" || e.key === " ")){
+      e.preventDefault();
+      const id = card.getAttribute("data-edit-service");
+      if(id) openServiceEditor(id);
+    }
+  });
   document.addEventListener("click",e=>{
-    const editId=e.target.getAttribute("data-edit-service"); if(editId)openServiceEditor(editId);
+    const editCard=e.target.closest("[data-edit-service]"); const editId=editCard?.getAttribute("data-edit-service"); if(editId)openServiceEditor(editId);
     const addOpt=e.target.getAttribute("data-add-option"); if(addOpt)addOption(addOpt);
     const delQ=e.target.getAttribute("data-delete-question");
     if(delQ&&state.editingDraft){state.editingDraft.questions=state.editingDraft.questions.filter(q=>q.id!==delQ); commitDraft(); renderQuestionEditor(state.editingDraft); renderServicesList()}
