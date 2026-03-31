@@ -117,11 +117,12 @@
             <div><label>Service name</label><input id="editServiceName" placeholder="Driveway Cleaning" /></div>
             <div><label>Starting price ($)</label><input id="editServiceBase" type="number" value="120" /></div>
             <div>
-              <label>Customer flow</label>
-              <select id="editServiceMode">
-                <option value="quote">Get Quote</option>
-                <option value="estimate">Book Appointment</option>
-              </select>
+              <label>Service type</label>
+              <div class="toggle-group" id="serviceModeToggle">
+                <button type="button" class="toggle-pill active" data-service-mode="quote">Instant Quote</button>
+                <button type="button" class="toggle-pill" data-service-mode="estimate">Book Appointment</button>
+              </div>
+              <input id="editServiceMode" type="hidden" value="quote" />
             </div>
           </div>
 
