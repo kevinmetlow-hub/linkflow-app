@@ -4,22 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Book Service</title>
-  <meta name="theme-color" content="#0a0f1a" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="LinkFlow" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="icon-512.png" />
+  <meta name="theme-color" content="#eef3f8" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="app-loading">
-  <div id="appBootScreen" class="app-boot-screen">
-    <div class="app-boot-card">
-      <div class="app-boot-logo">LinkFlow</div>
-      <div class="app-boot-spinner"></div>
-    </div>
-  </div>
+<body>
   <div class="customer-shell">
     <div class="glass customer-hero customer-hero-pop">
       <div class="customer-hero-bg"></div>
@@ -37,7 +25,6 @@
     </div>
 
     <div class="glass customer-card">
-      <div class="step-pill" id="customerStepPill">Step 1 of 4</div>
       <div id="customerStep1" class="step active">
         <h2>What do you need done?</h2>
         <p class="sub">Pick a service first. We’ll guide you to the right next step automatically.</p>
@@ -47,7 +34,6 @@
           <div><label>Phone</label><input id="custPhone" placeholder="(555) 555-5555" /></div>
           <div><label>Address</label><input id="custAddress" placeholder="123 Main St" /></div>
         </div>
-        <div id="customerInlineStatus" class="inline-status hidden"></div>
         <div id="dynamicQuestions" class="stack mt12"></div>
         <div class="btn-row"><button id="continueCustomerBtn" class="primary">Continue</button></div>
       </div>
@@ -92,8 +78,9 @@
           <canvas id="customerSig" class="signature" width="900" height="300"></canvas>
           <div class="btn-row"><button id="clearCustomerSigBtn">Clear Signature</button><button id="saveWorkOrderBtn">Save / Print Work Order</button></div>
         </div>
+        <div id="customerSubmitError" class="inline-status hidden"></div>
         <div class="btn-row">
-          <button id="finishBookingBtn" class="primary">Confirm Booking</button><div id="customerSubmitError" class="inline-status hidden"></div>
+          <button id="finishBookingBtn" class="primary">Confirm Booking</button>
           <button data-step="customerStep3">Back</button>
         </div>
       </div>
