@@ -203,13 +203,86 @@ function renderJobs(){const recent=qs("recentJobs"), all=qs("jobList"), empty='<
 function openJobDetails(id){const j=state.jobs.find(x=>x.id===id); if(!j)return; state.activeJobId=id; qs("jobDetailTitle").textContent=j.customer||"Order"; qs("jobDetailDate").textContent=formatDisplayDate(j.scheduleDate,j.scheduleTime); qs("jobDetailCustomer").textContent=j.customer||""; qs("jobDetailPhone").textContent=j.phone||""; qs("jobDetailAddress").textContent=j.address||""; qs("jobDetailService").textContent=j.serviceName||""; qs("jobDetailPrice").textContent=j.mode==="estimate"?"Appointment":money(j.price); qs("jobDetailStatus").textContent=statusLabel(j.status); qs("jobDetailAnswers").innerHTML=(j.answers||[]).length?j.answers.map(a=>`<div>${escapeHtml(a.question)}: ${escapeHtml(a.answer)}</div>`).join(""):"No saved answers."; openModal("jobDetailModal")}
 function renderServicesList(){const box=qs("serviceList"); if(!box)return; box.innerHTML=state.services.length?state.services.map(s=>`<div class="service-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><strong>${escapeHtml(s.name)}</strong><div class="mini">${effectiveModeForService(s)==="quote"?"Get Quote":"Book Appointment"} · Base ${money(s.base)}</div><div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div></div><button data-edit-service="${s.id}">Edit</button></div></div>`).join(""):'<div class="service-card"><div class="mini">No services yet.</div></div>'}
 function ensureQ(q){if(q.type==="yesno"&&(!q.options||q.options.length!==2))q.options=[{id:uid("opt"),label:"Yes",modifierType:"fixed",modifierValue:0},{id:uid("opt"),label:"No",modifierType:"fixed",modifierValue:0}]; if((q.type==="text"||q.type==="number")&&!q.options)q.options=[]; if(q.type==="multiple"&&(!q.options||!q.options.length))q.options=[{id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0}]}
-function syncDraft(){if(!state.editingDraft)return; state.editingDraft.name=qs("editServiceName").value.trim()||"Untitled Service"; state.editingDraft.base=parseFloat(qs("editServiceBase").value)||0; state.editingDraft.mode=qs("editServiceMode").value; state.editingDraft.questions=(state.editingDraft.questions||[]).map(q=>{const t=document.querySelector(`[data-q-type="${q.id}"]`)?.value||q.type; const l=document.querySelector(`[data-q-label="${q.id}"]`)?.value?.trim()||q.label; let opts=[]; if(t==="multiple"||t==="yesno"){opts=(q.options||[]).map(o=>{const k=`${q.id}__${o.id}`; return {...o,label:document.querySelector(`[data-opt-label="${k}"]`)?.value?.trim()||o.label,modifierType:document.querySelector(`[data-opt-type="${k}"]`)?.value||o.modifierType,modifierValue:parseFloat(document.querySelector(`[data-opt-value="${k}"]`)?.value)||0}})} return {...q,label:l,type:t,options:opts}})}
+function syncDraft(){if(!state.editingDraft)return; state.editingDraft.name=qs("editServiceName").value.trim()||"Untitled Service"; state.editingDraft.base=parseFloat(qs("editServiceBase").value)||0; state.editingDraft.mode=qs("editServiceMode").value; state.editingDraft.questions=(state.editingDraft.questions||[]).map(q=>{const t=document.querySelector(`[data-q-type="${q.id}"]`)?.value||q.type; const l=document.querySelector(`[data-q-label="${q.id}"]`)?.value?.trim()||q.label; let opts=[]; if(t==="multiple"||t==="yesno"){opts=(q.options||[]).map(o=>{const k=`${q.id}__${o.id}`; return {...o,label:document.querySelector(`[data-opt-label="${k}"]`)?.value?.trim()||o.label,modifierType:"fixed",modifierValue:parseFloat(document.querySelector(`[data-opt-value="${k}"]`)?.value)||0}})} return {...q,label:l,type:t,options:opts}})}
 function commitDraft(){if(!state.editingDraft||!state.editingServiceId)return; const i=state.services.findIndex(s=>s.id===state.editingServiceId); if(i>=0)state.services[i]=clone(state.editingDraft)}
-function modifierFields(q,o){const k=`${q.id}__${o.id}`; return `<div class="option-line"><div><input data-opt-label="${k}" value="${escapeHtml(o.label)}"></div><div><select data-opt-type="${k}"><option value="fixed" ${o.modifierType==="fixed"?"selected":""}>Fixed $</option><option value="percent" ${o.modifierType==="percent"?"selected":""}>Percent %</option><option value="multiplier" ${o.modifierType==="multiplier"?"selected":""}>Multiplier x</option></select></div><div><input type="number" step="0.01" data-opt-value="${k}" value="${o.modifierValue}"></div><div><button data-delete-option="${k}" class="danger-btn">Remove</button></div></div>`}
-function renderQuestionEditor(service){const box=qs("questionList"); if(!box)return; box.innerHTML=service.questions.length?service.questions.map(q=>{ensureQ(q); const helper=q.type==="multiple"?"Add choices and set how each one changes the price.":q.type==="yesno"?"Yes and No are built in. Just set the pricing rules.":q.type==="text"?"This question collects information only.":"This question collects a number only."; return `<div class="question-card"><div class="row"><div><label>Question label</label><input data-q-label="${q.id}" value="${escapeHtml(q.label)}"></div><div><label>Question type</label><select data-q-type="${q.id}" class="q-type-select"><option value="multiple" ${q.type==="multiple"?"selected":""}>Multiple Choice</option><option value="yesno" ${q.type==="yesno"?"selected":""}>Yes / No</option><option value="text" ${q.type==="text"?"selected":""}>Text Input</option><option value="number" ${q.type==="number"?"selected":""}>Number Input</option></select><div class="helper">${helper}</div></div></div>${(q.type==="multiple"||q.type==="yesno")?`<div class="section-title">${q.type==="yesno"?"Pricing Rules":"Options"}</div><div class="option-head"><div>${q.type==="yesno"?"Answer":"Option"}</div><div>Rule</div><div>Value</div><div></div></div><div class="option-table">${(q.options||[]).map(o=>modifierFields(q,o)).join("")}</div>${q.type==="multiple"?`<div class="btn-row"><button data-add-option="${q.id}">Add Option</button></div>`:""}`:""}<div class="btn-row"><button data-delete-question="${q.id}" class="danger-btn">Delete Question</button></div></div>`}).join(""):'<div class="question-card"><div class="mini">No questions yet. Add your first question.</div></div>'}
-function openServiceEditor(id){const s=state.services.find(x=>x.id===id); if(!s)return; state.editingServiceId=id; state.editingDraft=clone(s); qs("editorTitle").textContent=s.name; qs("editServiceName").value=s.name; qs("editServiceBase").value=s.base; qs("editServiceMode").value=s.mode; renderQuestionEditor(state.editingDraft); switchScreen("editor")}
-function addQuestion(){if(!state.editingDraft)return; syncDraft(); state.editingDraft.questions.push({id:uid("q"),label:"New question",type:"multiple",options:[{id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0}]}); commitDraft(); renderQuestionEditor(state.editingDraft); renderServicesList()}
-function addOption(qid){if(!state.editingDraft)return; syncDraft(); const q=state.editingDraft.questions.find(x=>x.id===qid); if(!q)return; q.options.push({id:uid("opt"),label:"New option",modifierType:"fixed",modifierValue:0}); commitDraft(); renderQuestionEditor(state.editingDraft)}
+function modifierFields(q,o){const k=`${q.id}__${o.id}`; return `<div class="simple-option-row"><div><input data-opt-label="${k}" value="${escapeHtml(o.label)}" placeholder="Choice label"></div><div><input type="number" step="0.01" data-opt-value="${k}" value="${o.modifierValue}" placeholder="0"></div><div><button data-delete-option="${k}" class="danger-btn">Remove</button></div></div>`}
+
+function niceQuestionType(t){
+  if(t==="multiple") return "Multiple Choice";
+  if(t==="yesno") return "Yes / No";
+  if(t==="text") return "Text";
+  if(t==="number") return "Number";
+  return "Question";
+}
+
+function renderQuestionEditor(service){
+  const box=qs("questionList"); if(!box)return;
+  if(!service.questions.length){
+    box.innerHTML = '<div class="question-empty"><div class="mini">No questions yet. Use the quick buttons above to add one.</div></div>';
+    return;
+  }
+  box.innerHTML = service.questions.map((q, idx) => {
+    ensureQ(q);
+    const pricingInfo = q.type==="multiple"
+      ? '<div class="price-helper">For each choice, enter how much to add to the starting price.</div>'
+      : q.type==="yesno"
+      ? '<div class="price-helper">Set how much “Yes” or “No” should add to the price.</div>'
+      : '<div class="price-helper">This question collects information only. It does not change price.</div>';
+
+    const optionsUI = (q.type==="multiple"||q.type==="yesno")
+      ? `<div class="simple-option-head"><div>${q.type==="yesno"?"Answer":"Choice"}</div><div>Add to price ($)</div><div></div></div>
+         ${(q.options||[]).map(o=>modifierFields(q,o)).join("")}
+         ${q.type==="multiple" ? `<div class="btn-row"><button data-add-option="${q.id}">Add Choice</button></div>` : ""}`
+      : "";
+
+    return `<details class="question-shell" ${idx===0 ? "open" : ""}>
+      <summary class="question-summary">
+        <div class="question-summary-left">
+          <div class="question-summary-title">${escapeHtml(q.label || "New question")}</div>
+          <div class="question-summary-type">${niceQuestionType(q.type)}</div>
+        </div>
+        <span class="chip">${niceQuestionType(q.type)}</span>
+      </summary>
+      <div class="question-body">
+        <div class="row">
+          <div><label>Question to ask customer</label><input data-q-label="${q.id}" value="${escapeHtml(q.label)}" placeholder="Ex: How big is the job?"></div>
+          <div><label>Question type</label><select data-q-type="${q.id}" class="q-type-select"><option value="multiple" ${q.type==="multiple"?"selected":""}>Multiple Choice</option><option value="yesno" ${q.type==="yesno"?"selected":""}>Yes / No</option><option value="text" ${q.type==="text"?"selected":""}>Text</option><option value="number" ${q.type==="number"?"selected":""}>Number</option></select></div>
+        </div>
+        ${pricingInfo}
+        ${optionsUI}
+        <div class="btn-row"><button data-delete-question="${q.id}" class="danger-btn">Delete Question</button></div>
+      </div>
+    </details>`;
+  }).join("");
+}function openServiceEditor(id){const s=state.services.find(x=>x.id===id); if(!s)return; state.editingServiceId=id; state.editingDraft=clone(s); qs("editorTitle").textContent=s.name; qs("editServiceName").value=s.name; qs("editServiceBase").value=s.base; qs("editServiceMode").value=s.mode; renderQuestionEditor(state.editingDraft); switchScreen("editor")}
+function addQuestionOfType(type){
+  if(!state.editingDraft)return;
+  syncDraft();
+  const q = {id:uid("q"),label:"New question",type,options:[]};
+  if(type==="multiple"){
+    q.label = "Choose one option";
+    q.options = [
+      {id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0},
+      {id:uid("opt"),label:"Option 2",modifierType:"fixed",modifierValue:0}
+    ];
+  } else if(type==="yesno"){
+    q.label = "Yes or No?";
+    q.options = [
+      {id:uid("opt"),label:"Yes",modifierType:"fixed",modifierValue:0},
+      {id:uid("opt"),label:"No",modifierType:"fixed",modifierValue:0}
+    ];
+  } else if(type==="text"){
+    q.label = "Type your answer";
+  } else if(type==="number"){
+    q.label = "Enter a number";
+  }
+  state.editingDraft.questions.push(q);
+  commitDraft();
+  renderQuestionEditor(state.editingDraft);
+  renderServicesList();
+}
+function addQuestion(){ addQuestionOfType("multiple"); }
+function addOption(qid){if(!state.editingDraft)return; syncDraft(); const q=state.editingDraft.questions.find(x=>x.id===qid); if(!q)return; q.options.push({id:uid("opt"),label:`Option ${(q.options?.length||0)+1}`,modifierType:"fixed",modifierValue:0}); commitDraft(); renderQuestionEditor(state.editingDraft)}
 function updateQuestionType(qid,t){if(!state.editingDraft)return; syncDraft(); const q=state.editingDraft.questions.find(x=>x.id===qid); if(!q)return; q.type=t; if(t==="yesno")q.options=[{id:uid("opt"),label:"Yes",modifierType:"fixed",modifierValue:0},{id:uid("opt"),label:"No",modifierType:"fixed",modifierValue:0}]; else if(t==="text"||t==="number")q.options=[]; else if(t==="multiple"&&!q.options.length)q.options=[{id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0}]; commitDraft(); renderQuestionEditor(state.editingDraft)}
 async function saveServiceEditor(){if(!state.editingDraft)return; syncDraft(); commitDraft(); await syncServicesToSupabase(); renderServicesList(); renderCustomerServices(); alert("Service saved.")}
 async function deleteService(){if(!state.editingServiceId)return; if(!confirm("Delete this service?"))return; state.services=state.services.filter(s=>s.id!==state.editingServiceId); state.editingServiceId=null; state.editingDraft=null; await syncServicesToSupabase(); renderServicesList(); renderCustomerServices(); switchScreen("services")}
@@ -254,7 +327,7 @@ function bindContractorEvents(){
   qs("openBookingPageBtn2")?.addEventListener("click",()=>window.open(`${window.location.origin}/customer.html?slug=${state.business.slug}`,"_blank"));
   qs("homeStatusFilter")?.addEventListener("change",renderJobs); document.querySelectorAll("[data-close-modal]").forEach(el=>el.addEventListener("click",()=>closeModal(el.getAttribute("data-close-modal"))));
   qs("newServiceBtn")?.addEventListener("click",()=>{const s={id:uid("svc"),name:"New Service",base:0,mode:"quote",questions:[]}; state.services.push(s); renderServicesList(); openServiceEditor(s.id)});
-  qs("backToServicesBtn")?.addEventListener("click",()=>switchScreen("services")); qs("addQuestionBtn")?.addEventListener("click",addQuestion); qs("saveServiceBtn")?.addEventListener("click",saveServiceEditor); qs("deleteServiceBtn")?.addEventListener("click",deleteService); qs("saveSettingsBtn")?.addEventListener("click",saveSettings);
+  qs("backToServicesBtn")?.addEventListener("click",()=>switchScreen("services")); qs("addQuestionBtn")?.addEventListener("click",addQuestion); qs("addMultipleBtn")?.addEventListener("click",()=>addQuestionOfType("multiple")); qs("addYesNoBtn")?.addEventListener("click",()=>addQuestionOfType("yesno")); qs("addTextBtn")?.addEventListener("click",()=>addQuestionOfType("text")); qs("addNumberBtn")?.addEventListener("click",()=>addQuestionOfType("number")); qs("saveServiceBtn")?.addEventListener("click",saveServiceEditor); qs("deleteServiceBtn")?.addEventListener("click",deleteService); qs("saveSettingsBtn")?.addEventListener("click",saveSettings);
   ["editServiceName","editServiceBase","editServiceMode"].forEach(id=>{qs(id)?.addEventListener("input",()=>{syncDraft(); commitDraft(); renderServicesList()}); qs(id)?.addEventListener("change",()=>{syncDraft(); commitDraft(); renderServicesList()})});
   document.addEventListener("input",e=>{if(e.target.matches('[data-q-label]')||e.target.matches('[data-opt-label]')||e.target.matches('[data-opt-value]')){syncDraft(); commitDraft(); renderServicesList()}});
   document.addEventListener("change",e=>{if(e.target.matches('[data-opt-type]')){syncDraft(); commitDraft(); renderServicesList()} if(e.target.matches('.q-type-select'))updateQuestionType(e.target.getAttribute('data-q-type'),e.target.value)});
