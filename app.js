@@ -27,9 +27,18 @@ async function requireUser(){
 }
 const statusLabel=s=>s==="completed"?"Completed":s==="canceled"?"Canceled":"Pending";
 const localKey=s=>`linkflow_${state.user?.id||"guest"}_${s}`;
+const screenStorageKey=()=>localKey("current_screen");
 
 function showOnly(id){["authSection","onboardingSection","appShell"].forEach(x=>qs(x)?.classList.add("hidden")); qs(id)?.classList.remove("hidden")}
-function saveLocalExtras(){localStorage.setItem(localKey("jobExtras"),JSON.stringify(state.jobExtras||{}))}
+function stopBoot(){ document.body.classList.remove("app-loading"); try{ clearTimeout(window.bootFailsafe); }catch(e){} }
+function saveLocalExtras(){
+  try{
+    if(!state.user) return;
+    localStorage.setItem(localKey("jobExtras"), JSON.stringify(state.jobExtras||{}));
+  }catch(e){
+    console.warn("local extras skipped", e);
+  }
+}
 function loadLocalExtras(){try{state.jobExtras=JSON.parse(localStorage.getItem(localKey("jobExtras"))||"{}")}catch(e){state.jobExtras={}}}
 
 function setLogoUI(logoData){
@@ -89,80 +98,61 @@ function printAgreement(id){const j=state.jobs.find(x=>x.id===id); if(j?.agreeme
 function openSms(job,kind){if(!job?.phone)return alert("No phone number."); const body=kind==="confirm"?`Hi ${job.customer}, your ${job.serviceName} is booked for ${formatDisplayDate(job.scheduleDate,job.scheduleTime)}. Reply here with any questions.`:`Hi ${job.customer}, regarding your ${job.serviceName} booked for ${formatDisplayDate(job.scheduleDate,job.scheduleTime)}.`; window.location.href=`sms:${job.phone}&body=${encodeURIComponent(body)}`}
 function openCall(job){if(!job?.phone)return alert("No phone number."); window.location.href=`tel:${job.phone}`}
 
-async function signUp(){const email=qs("signupEmail").value.trim(), password=qs("signupPassword").value; const {error}=await supabase.auth.signUp({email,password}); if(error)return alert(error.message); const r=await supabase.auth.signInWithPassword({email,password}); if(r.error)alert("Account created. Check your email if confirmation is required.");}
-async function signIn(){const email=qs("loginEmail").value.trim(), password=qs("loginPassword").value; const {error}=await supabase.auth.signInWithPassword({email,password}); if(error)alert(error.message)}
-async function signOut(){await supabase.auth.signOut()}
-
-async function ensureContext(){
-  try{
-    const sessionRes = await Promise.race([
-      supabase.auth.getSession(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("auth timeout")), 5000))
-    ]);
-    const user = sessionRes?.data?.session?.user || null;
-    state.user = user;
-
-    if(!state.user){
-      state.business={id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement",logoData:""};
-      state.services=[]; state.jobs=[]; state.jobExtras={};
-      state.currentScreen="home";
-      state.homeStatusFilter="scheduled";
-      try{ localStorage.removeItem(screenStorageKey()) }catch(e){}
-      showOnly("authSection");
-      return;
-    }
-
-    loadLocalExtras();
-
-    let business = null;
-    try{
-      const res = await Promise.race([
-        supabase.from("businesses").select("*").eq("user_id",state.user.id).maybeSingle(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("business timeout")), 5000))
-      ]);
-      business = res?.data || null;
-    }catch(e){
-      console.error("business fetch failed", e);
-    }
-
-    if(!business){
-      showOnly("onboardingSection");
-      return;
-    }
-
-    state.business={
-      id:business.id,
-      name:business.name||"",
-      phone:business.phone||"",
-      slug:business.slug||"",
-      mode:business.mode||"both",
-      agreementTitle:business.agreement_title||"Service Agreement",
-      logoData:business.logo_data||""
-    };
-
-    showOnly("appShell");
-    const savedScreen = (()=>{ try{return localStorage.getItem(screenStorageKey())||"home"}catch(e){return "home"} })();
-    switchScreen(savedScreen);
-    renderSharedBits();
-
-    try{
-      await Promise.all([
-        loadServicesFromSupabase(business.id),
-        loadJobsFromSupabase(business.id)
-      ]);
-    }catch(e){
-      console.error("app data load failed", e);
-      state.services = state.services || [];
-      state.jobs = state.jobs || [];
-    }
-
-    renderEverything();
-  }catch(e){
-    console.error("ensureContext failed", e);
-    showOnly("authSection");
-  }finally{
-    stopBoot();
+async function signUp(){
+  const email=(qs("signupEmail")?.value||"").trim();
+  const password=qs("signupPassword")?.value||"";
+  if(!email || !password){
+    setInlineStatus("signupInlineStatus","Enter your email and password.","error");
+    return;
   }
+  setInlineStatus("signupInlineStatus","");
+  setButtonLoading("signupBtn", true, "Creating...");
+  try{
+    const {error}=await supabase.auth.signUp({email,password});
+    if(error) throw error;
+    const r=await supabase.auth.signInWithPassword({email,password});
+    if(r.error){
+      setInlineStatus("signupInlineStatus","Account created. Check your email if confirmation is required.","info");
+      return;
+    }
+    await ensureContext();
+  }catch(err){
+    setInlineStatus("signupInlineStatus", err?.message || "Could not create account.", "error");
+  }finally{
+    setButtonLoading("signupBtn", false);
+  }
+}
+async function signIn(){
+  const email=(qs("loginEmail")?.value||"").trim();
+  const password=qs("loginPassword")?.value||"";
+  if(!email || !password){
+    setInlineStatus("authInlineStatus","Enter your email and password.","error");
+    return;
+  }
+  setInlineStatus("authInlineStatus","");
+  setButtonLoading("loginBtn", true, "Logging in...");
+  try{
+    const {error}=await supabase.auth.signInWithPassword({email,password});
+    if(error) throw error;
+    await ensureContext();
+  }catch(err){
+    setInlineStatus("authInlineStatus", err?.message || "Login failed.", "error");
+  }finally{
+    setButtonLoading("loginBtn", false);
+  }
+}
+async function signOut(){
+  try{
+    await supabase.auth.signOut();
+  }catch(e){
+    console.warn("signOut warning", e);
+  }
+  state.user=null;
+  state.business={id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement",logoData:""};
+  state.services=[]; state.jobs=[]; state.editingServiceId=null; state.editingDraft=null; state.currentQuote=0; state.currentServiceId=null; state.latestAnswers=[]; state.activeJobId=null; state.homeStatusFilter="scheduled"; state.jobExtras={};
+  try{ localStorage.removeItem(screenStorageKey()); }catch(e){}
+  showOnly("authSection");
+  stopBoot();
 }
 
 async function createBusinessFromOnboarding(){
@@ -295,7 +285,7 @@ function bindServiceCardInteractions(){
   });
 }
 
-function renderServicesList(){const box=qs("serviceList"); if(!box)return; box.innerHTML=state.services.length?state.services.map(s=>`<div class="service-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><strong>${escapeHtml(s.name)}</strong><div class="mini">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · Base ${money(s.base)}</div><div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div></div><button data-edit-service="${s.id}">Edit</button></div></div>`).join(""):'<div class="service-card"><div class="mini">No services yet.</div></div>'}
+function renderServicesList(){const box=qs("serviceList"); if(!box)return; box.innerHTML=state.services.length?state.services.map(s=>`<div class="service-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><strong>${escapeHtml(s.name)}</strong><div class="mini">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · Base ${money(s.base)}</div><div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div></div><button data-edit-service="${s.id}">Edit</button></div></div>`).join(""):'<div class="service-card"><div class="mini">No services yet.</div></div>'; if(typeof bindServiceCardInteractions==="function") bindServiceCardInteractions();}
 function ensureQ(q){if(q.type==="yesno"&&(!q.options||q.options.length!==2))q.options=[{id:uid("opt"),label:"Yes",modifierType:"fixed",modifierValue:0},{id:uid("opt"),label:"No",modifierType:"fixed",modifierValue:0}]; if((q.type==="text"||q.type==="number")&&!q.options)q.options=[]; if(q.type==="multiple"&&(!q.options||!q.options.length))q.options=[{id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0}]}
 function syncDraft(){if(!state.editingDraft)return; state.editingDraft.name=qs("editServiceName").value.trim()||"Untitled Service"; state.editingDraft.base=parseFloat(qs("editServiceBase").value)||0; state.editingDraft.mode=qs("editServiceMode").value; state.editingDraft.questions=(state.editingDraft.questions||[]).map(q=>{const t=document.querySelector(`[data-q-type="${q.id}"]`)?.value||q.type; const l=document.querySelector(`[data-q-label="${q.id}"]`)?.value?.trim()||q.label; let opts=[]; if(t==="multiple"||t==="yesno"){opts=(q.options||[]).map(o=>{const k=`${q.id}__${o.id}`; return {...o,label:document.querySelector(`[data-opt-label="${k}"]`)?.value?.trim()||o.label,modifierType:"fixed",modifierValue:parseFloat(document.querySelector(`[data-opt-value="${k}"]`)?.value)||0}})} return {...q,label:l,type:t,options:opts}})}
 function commitDraft(){if(!state.editingDraft||!state.editingServiceId)return; const i=state.services.findIndex(s=>s.id===state.editingServiceId); if(i>=0)state.services[i]=clone(state.editingDraft)}
@@ -407,7 +397,7 @@ async function saveSettings(){await requireUser(); state.business.name=qs("bizNa
   alert("Profile saved.")
 }
 function switchScreen(name){qsa(".screen").forEach(s=>s.classList.remove("active")); qs("screen-"+name)?.classList.add("active"); qsa(".nav-btn").forEach(b=>b.classList.remove("active")); document.querySelector(`.nav-btn[data-screen="${name}"]`)?.classList.add("active")}
-function renderEverything(){renderSharedBits(); renderMetrics(); renderJobs(); renderServicesList()}
+function renderEverything(){renderSharedBits(); renderMetrics(); renderJobs(); renderServicesList(); if(typeof bindServiceCardInteractions==="function") bindServiceCardInteractions()}
 function applyModifier(total,t,v){v=Number(v||0); if(t==="fixed")return total+v; if(t==="percent")return total+(total*(v/100)); if(t==="multiplier")return total*v; return total}
 function modifierText(o){const v=Number(o.modifierValue||0); if(o.modifierType==="fixed")return `${v>=0?"+":""}${money(v)}`; if(o.modifierType==="percent")return `${v>=0?"+":""}${v}%`; if(o.modifierType==="multiplier")return `x${v}`; return ""}
 function renderCustomerServices(){const sel=qs("custService"); if(!sel)return; sel.innerHTML=state.services.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join(""); state.currentServiceId=state.services[0]?.id||null; renderCustomerQuestions()}
@@ -459,7 +449,7 @@ async function publicLoadBySlug(){
 
     qs("customerBizName").textContent = state.business.name;
     qs("docBizName").textContent = state.business.name;
-    setLogoUI(state.business.logoData||"");
+    setLogoUI(state.business.logoData || "");
     renderCustomerServices();
   }finally{
     stopBoot();
