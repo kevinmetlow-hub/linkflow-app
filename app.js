@@ -505,3 +505,12 @@ function setButtonLoading(id, isLoading, loadingText="Loading..."){
     if(btn.dataset.originalText) btn.textContent = btn.dataset.originalText;
   }
 }
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  try {
+    bindContractorEvents();
+  } catch(e){
+    console.error("bind error", e);
+  }
+});
