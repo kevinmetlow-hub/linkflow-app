@@ -132,8 +132,32 @@ async function ensureContext(){
   }
 
   loadLocalExtras();
-  const {data:business}=await supabase.from("businesses").select("*").eq("user_id",state.user.id).maybeSingle();
-  if(!business){showOnly("onboardingSection"); return}
+  let business = null;
+
+try {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("timeout")), 5000)
+  );
+
+  const res = await Promise.race([
+    supabase
+      .from("businesses")
+      .select("*")
+      .eq("user_id", state.user.id)
+      .maybeSingle(),
+    timeout
+  ]);
+
+  business = res?.data || null;
+
+} catch (e) {
+  console.error("business fetch failed", e);
+}
+
+if(!business){
+  showOnly("onboardingSection");
+  return;
+}
 
   state.business={id:business.id,name:business.name||"",phone:business.phone||"",slug:business.slug||"",mode:business.mode||"both",agreementTitle:business.agreement_title||"Service Agreement",logoData:business.logo_data||""};
 
