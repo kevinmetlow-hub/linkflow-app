@@ -1070,3 +1070,16 @@ body:not(.app-loading) .app-boot-screen{display:none}
 #screen-settings .editor-card{padding-top:18px}
 #screen-settings label{color:#c7d4ea;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
 #screen-settings input,#screen-settings select{background:rgba(255,255,255,.03)}
+
+
+/* Signature canvas fix */
+.signature{
+  width:100%;
+  max-width:100%;
+  display:block;
+  box-sizing:border-box;
+  height:150px;
+}
+.doc{
+  overflow:hidden;
+}
