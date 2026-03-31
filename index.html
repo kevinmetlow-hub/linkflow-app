@@ -124,16 +124,17 @@
 
       <section id="screen-editor" class="screen">
         <div class="section-head">
-          <div><div class="eyebrow">Service Editor</div><h2 id="editorTitle">Edit service</h2></div>
+          <div><div class="eyebrow">Service Builder</div><h2 id="editorTitle">Edit service</h2></div>
           <button id="backToServicesBtn" class="small-btn">Back</button>
         </div>
 
         <div class="glass editor-card">
+          <div class="section-title">1. Service Basics</div>
           <div class="row">
             <div><label>Service name</label><input id="editServiceName" placeholder="Driveway Cleaning" /></div>
-            <div><label>Base price ($)</label><input id="editServiceBase" type="number" value="120" /></div>
+            <div><label>Starting price ($)</label><input id="editServiceBase" type="number" value="120" /></div>
             <div>
-              <label>Flow</label>
+              <label>Customer flow</label>
               <select id="editServiceMode">
                 <option value="quote">Get Quote</option>
                 <option value="estimate">Book Appointment</option>
@@ -141,12 +142,20 @@
             </div>
           </div>
 
-          <div class="section-title">Questions</div>
-          <div id="questionList" class="stack"></div>
+          <div class="section-title">2. What should customers answer?</div>
+          <div class="helper">Use the quick buttons below. Each question opens in its own card so the screen feels cleaner.</div>
+
+          <div class="quick-add-row">
+            <button id="addMultipleBtn" class="primary">+ Multiple Choice</button>
+            <button id="addYesNoBtn">+ Yes / No</button>
+            <button id="addTextBtn">+ Text</button>
+            <button id="addNumberBtn">+ Number</button>
+          </div>
+
+          <div id="questionList" class="stack mt12"></div>
 
           <div class="btn-row">
-            <button id="addQuestionBtn" class="primary">Add Question</button>
-            <button id="saveServiceBtn">Save Service</button>
+            <button id="saveServiceBtn" class="primary">Save Service</button>
             <button id="deleteServiceBtn" class="danger-btn">Delete Service</button>
           </div>
         </div>
