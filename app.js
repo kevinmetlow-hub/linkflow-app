@@ -259,27 +259,34 @@ function openJobDetails(id){const j=state.jobs.find(x=>x.id===id); if(!j)return;
 function renderServicesList(){
   const box=qs("serviceList");
   if(!box) return;
+
   if(!state.services.length){
-    box.innerHTML = `<div class="empty-state-card"><div class="empty-state-title">No services yet</div><div class="mini">Create your first service so customers can start booking.</div></div>`;
+    box.innerHTML = '<div class="service-card"><div class="mini">No services yet.</div></div>';
     return;
   }
+
   box.innerHTML = state.services.map(s => {
-    const previewCount=(s.questions||[]).length;
-    return `<button type="button" class="service-card service-clickable service-card-compact" data-edit-service="${s.id}">
-      <div class="service-header">
-        <div class="service-title-wrap">
-          <div class="service-title">${escapeHtml(s.name)}</div>
-          <div class="service-meta">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · ${previewCount} ${previewCount===1?"question":"questions"}</div>
+    const previewCount = (s.questions || []).length;
+    return `
+      <button type="button" class="service-card service-clickable service-card-compact" data-open-service="${s.id}" onclick="window.__openServiceFromCard && window.__openServiceFromCard('${s.id}')">
+        <div class="service-header">
+          <div class="service-title-wrap">
+            <div class="service-title">${escapeHtml(s.name)}</div>
+            <div class="service-meta">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · ${previewCount} ${previewCount===1?"question":"questions"}</div>
+          </div>
+          <div class="service-price">${money(s.base)}</div>
         </div>
-        <div class="service-price">${money(s.base)}</div>
-      </div>
-      <div class="service-preview-line">
-        <div class="mini service-preview-mini">Tap to edit service settings</div>
-        <span class="service-preview-arrow">›</span>
-      </div>
-    </button>`;
+        <div class="service-preview-line">
+          <div class="mini service-preview-mini">Tap to edit service settings</div>
+          <span class="service-preview-arrow">›</span>
+        </div>
+      </button>
+    `;
   }).join("");
+
+  bindServiceCardInteractions();
 }
+
 function openServiceEditor(id){const s=state.services.find(x=>x.id===id); if(!s)return; state.editingServiceId=id; state.editingDraft=clone(s); qs("editorTitle").textContent=s.name; qs("editServiceName").value=s.name; qs("editServiceBase").value=s.base; qs("editServiceMode").value=s.mode;
   qsa("[data-service-mode]").forEach(b=>b.classList.toggle("active", b.getAttribute("data-service-mode")===s.mode));
   renderQuestionEditor(state.editingDraft); switchScreen("editor")}
