@@ -95,23 +95,17 @@
           <div class="notice" id="bookingLinkNotice">customer.html?slug=...</div>
         </div>
 
-        <div class="metric-grid">
-          <div class="metric-card glass"><div class="metric-k">Pending</div><div class="metric-v" id="mPending">0</div></div>
-          <div class="metric-card glass"><div class="metric-k">Completed</div><div class="metric-v" id="mCompleted">0</div></div>
-          <div class="metric-card glass"><div class="metric-k">Canceled</div><div class="metric-v" id="mCanceled">0</div></div>
-          <div class="metric-card glass"><div class="metric-k">Quoted</div><div class="metric-v" id="mQuoted">0</div></div>
-        </div>
-
         <div class="section-head">
           <div><div class="section-title" style="margin:0">Orders</div></div>
-          <select id="homeStatusFilter" class="small-select">
-            <option value="scheduled">Pending Orders</option>
-            <option value="completed">Completed Orders</option>
-            <option value="canceled">Canceled Orders</option>
-            <option value="all">All Orders</option>
-          </select>
         </div>
-        <div id="recentJobs" class="stack"></div>
+
+        <div class="status-toggle" id="homeStatusToggle">
+          <button class="status-tab active" data-status-filter="scheduled">Pending</button>
+          <button class="status-tab" data-status-filter="completed">Completed</button>
+          <button class="status-tab" data-status-filter="canceled">Canceled</button>
+        </div>
+
+        <div id="recentJobs" class="stack mt12"></div>
       </section>
 
       <section id="screen-services" class="screen">
@@ -158,13 +152,6 @@
         </div>
       </section>
 
-      <section id="screen-jobs" class="screen">
-        <div class="section-head">
-          <div><div class="eyebrow">Jobs</div><h2>All Jobs</h2></div>
-        </div>
-        <div id="jobList" class="stack"></div>
-      </section>
-
       <section id="screen-link" class="screen">
         <div class="glass editor-card">
           <div class="eyebrow">Booking Page</div>
@@ -182,6 +169,22 @@
         <div class="glass editor-card">
           <div class="eyebrow">Profile</div>
           <h2>Business profile</h2>
+
+          <div class="profile-top">
+            <div id="logoPreviewWrap" class="profile-logo-card hidden"><img id="logoPreviewImg" class="logo-preview" alt="Logo preview" /></div>
+            <div class="profile-top-actions">
+              <button id="triggerLogoUploadBtn" class="primary">Change Logo</button>
+              <button id="saveSettingsBtn">Save Profile</button>
+            </div>
+          </div>
+
+          <div class="metric-grid profile-metrics">
+            <div class="metric-card glass"><div class="metric-k">Pending</div><div class="metric-v" id="mPending">0</div></div>
+            <div class="metric-card glass"><div class="metric-k">Completed</div><div class="metric-v" id="mCompleted">0</div></div>
+            <div class="metric-card glass"><div class="metric-k">Canceled</div><div class="metric-v" id="mCanceled">0</div></div>
+            <div class="metric-card glass"><div class="metric-k">Quoted</div><div class="metric-v" id="mQuoted">0</div></div>
+          </div>
+
           <div class="row">
             <div><label>Business name</label><input id="bizName" /></div>
             <div><label>Company logo</label><input id="bizLogo" type="file" accept="image/*" /></div>
@@ -197,10 +200,6 @@
             </div>
             <div><label>Agreement title</label><input id="agreementTitle" /></div>
           </div>
-          <div id="logoPreviewWrap" class="hidden mt12"><img id="logoPreviewImg" class="logo-preview" alt="Logo preview" /></div>
-          <div class="btn-row">
-            <button id="saveSettingsBtn" class="primary">Save Profile</button>
-          </div>
         </div>
       </section>
     </main>
@@ -208,7 +207,6 @@
     <nav class="bottom-nav glass">
       <button class="nav-btn active" data-screen="home">Home</button>
       <button class="nav-btn" data-screen="services">Services</button>
-      <button class="nav-btn" data-screen="jobs">Jobs</button>
       <button class="nav-btn" data-screen="link">Link</button>
       <button class="nav-btn" data-screen="settings">Profile</button>
     </nav>
