@@ -1090,3 +1090,12 @@ body:not(.app-loading) .app-boot-screen{
 @keyframes bootSpin{
   to{ transform:rotate(360deg); }
 }
+
+
+.service-clickable{
+  cursor:pointer;
+}
+.service-clickable:hover{
+  border-color:rgba(68,200,255,.18);
+  transform:translateY(-1px);
+}
