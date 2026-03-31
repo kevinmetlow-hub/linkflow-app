@@ -174,10 +174,11 @@
 
       <section id="screen-settings" class="screen">
         <div class="glass editor-card">
-          <div class="eyebrow">Settings</div>
-          <h2>Business settings</h2>
+          <div class="eyebrow">Profile</div>
+          <h2>Business profile</h2>
           <div class="row">
             <div><label>Business name</label><input id="bizName" /></div>
+            <div><label>Company logo</label><input id="bizLogo" type="file" accept="image/*" /></div>
             <div><label>Phone</label><input id="bizPhone" /></div>
             <div><label>Link slug</label><input id="bizSlug" /></div>
             <div>
@@ -190,8 +191,9 @@
             </div>
             <div><label>Agreement title</label><input id="agreementTitle" /></div>
           </div>
+          <div id="logoPreviewWrap" class="hidden mt12"><img id="logoPreviewImg" class="logo-preview" alt="Logo preview" /></div>
           <div class="btn-row">
-            <button id="saveSettingsBtn" class="primary">Save Settings</button>
+            <button id="saveSettingsBtn" class="primary">Save Profile</button>
           </div>
         </div>
       </section>
@@ -202,7 +204,7 @@
       <button class="nav-btn" data-screen="services">Services</button>
       <button class="nav-btn" data-screen="jobs">Jobs</button>
       <button class="nav-btn" data-screen="link">Link</button>
-      <button class="nav-btn" data-screen="settings">Settings</button>
+      <button class="nav-btn" data-screen="settings">Profile</button>
     </nav>
   </div>
 
