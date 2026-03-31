@@ -457,6 +457,33 @@ async function publicLoadBySlug(){
 }
 function bindCustomerEvents(){qs("custService")?.addEventListener("change",renderCustomerQuestions); qs("continueCustomerBtn")?.addEventListener("click",()=>{const svc=state.services.find(s=>s.id===qs("custService").value); if(!svc)return; const r=collectAnswersAndPrice(svc); state.currentQuote=r.total; state.latestAnswers=r.answers; const mode=effectiveModeForService(svc); qs("resultTitle").textContent=mode==="estimate"?"Book Appointment":"Your Quote"; qs("quotePrice").textContent=mode==="estimate"?"Appointment":money(r.total); qs("quoteBreakdown").textContent=mode==="estimate"?"This service is booked by appointment. Choose a time to continue.":r.parts.join(" · "); qs("continueScheduleBtn").textContent=mode==="estimate"?"Book Appointment":"Accept & Schedule"; goStep("customerStep2")}); qs("continueScheduleBtn")?.addEventListener("click",()=>goStep("customerStep3")); qs("continueAgreementBtn")?.addEventListener("click",()=>{const svc=state.services.find(s=>s.id===qs("custService").value), mode=effectiveModeForService(svc); qs("agreementHeading").textContent=state.business.agreementTitle; qs("docBizName").textContent=state.business.name; qs("docCustName").textContent=qs("custName").value||"Customer"; qs("docService").textContent=svc?.name||""; qs("docPrice").textContent=mode==="estimate"?"Appointment Request":money(state.currentQuote); qs("docAddress").textContent=qs("custAddress").value||""; qs("docSchedule").textContent=formatDisplayDate(normalizeScheduleDate(qs("scheduleDate").value),qs("scheduleTime").value); goStep("customerStep4")}); qs("finishBookingBtn")?.addEventListener("click",submitPublicBooking); qs("restartCustomerBtn")?.addEventListener("click",()=>goStep("customerStep1")); qs("newTestBookingBtn")?.addEventListener("click",()=>window.location.reload()); qs("clearCustomerSigBtn")?.addEventListener("click",()=>clearSig("customerSig")); qs("saveWorkOrderBtn")?.addEventListener("click",saveWorkOrderCurrent); qs("saveWorkOrderBtnDone")?.addEventListener("click",saveWorkOrderCurrent); qsa("[data-step]").forEach(btn=>btn.addEventListener("click",()=>goStep(btn.dataset.step)))}
 
+function bindContractorEvents(){
+  // Auth buttons
+  qs("loginBtn")?.addEventListener("click", signIn);
+  qs("signupBtn")?.addEventListener("click", signUp);
+  qs("logoutBtn")?.addEventListener("click", signOut);
+
+  // Onboarding
+  qs("finishOnboardingBtn")?.addEventListener("click", createBusinessFromOnboarding);
+
+  // Navigation
+  qsa(".nav-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const screen = btn.getAttribute("data-screen");
+      if(screen) switchScreen(screen);
+    });
+  });
+
+  // Service edit buttons (delegated)
+  document.addEventListener("click", (e)=>{
+    const editBtn = e.target.closest("[data-edit-service]");
+    if(editBtn){
+      const id = editBtn.getAttribute("data-edit-service");
+      if(id) openServiceEditor(id);
+    }
+  });
+}
+
 async function init(){
   initSignature("customerSig");
   try{
