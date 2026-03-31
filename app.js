@@ -59,6 +59,17 @@ function showLoginScreen(){
   if(qs('loginPassword')) qs('loginPassword').value = '';
   if(qs('signupPassword')) qs('signupPassword').value = '';
 }
+
+function warmAuthShell(){
+  const shell = qs('appShell');
+  if(!shell) return;
+  shell.classList.remove('hidden');
+  shell.setAttribute('data-auth-loading', '1');
+}
+
+function finishAuthShell(){
+  qs('appShell')?.removeAttribute('data-auth-loading');
+}
 function saveLocalExtras(){
   try{
     if(!state.user) return;
@@ -183,11 +194,13 @@ async function signIn(){
   setButtonLoading("loginBtn", true, "Logging in...");
   authActionInFlight = true;
   document.body.classList.add("app-loading");
+  warmAuthShell();
   try{
-    const {error}=await supabase.auth.signInWithPassword({email,password});
+    const {data,error}=await supabase.auth.signInWithPassword({email,password});
     if(error) throw error;
-    await ensureContext(true);
+    await ensureContext(true, data?.user || data?.session?.user || null);
   }catch(err){
+    finishAuthShell();
     setInlineStatus("authInlineStatus", err?.message || "Login failed.", "error");
     stopBoot();
   }finally{
@@ -539,15 +552,19 @@ function restoreSavedScreen(){
   }
 }
 
-async function ensureContext(force=false){
+async function ensureContext(force=false, sessionUser=null){
   if(ensureContextPromise && !force) return ensureContextPromise;
   ensureContextPromise = (async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if(error) throw error;
-    const user = data?.user || null;
+    let user = sessionUser || null;
+    if(!user){
+      const { data, error } = await supabase.auth.getSession();
+      if(error) throw error;
+      user = data?.session?.user || null;
+    }
     state.user = user;
     if(!user){
       resetAppState();
+      finishAuthShell();
       showLoginScreen();
       stopBoot();
       return;
@@ -561,6 +578,7 @@ async function ensureContext(force=false){
 
     if(businessError){
       console.error('business load failed', businessError);
+      finishAuthShell();
       setInlineStatus('authInlineStatus', businessError.message || 'Could not load account.', 'error');
       showOnly('authSection');
       stopBoot();
@@ -568,6 +586,7 @@ async function ensureContext(force=false){
     }
 
     if(!business){
+      finishAuthShell();
       renderTemplatePreview();
       showOnly('onboardingSection');
       stopBoot();
@@ -593,6 +612,7 @@ async function ensureContext(force=false){
     renderCustomerServices();
     setRepeatedTextById('contractorBizName', state.business.name || 'Your Jobs');
     showOnly('appShell');
+    finishAuthShell();
     restoreSavedScreen();
     stopBoot();
   })();
@@ -903,12 +923,13 @@ async function init(){
     if(qs("authSection")){
       bindContractorEvents();
       const {data}=await supabase.auth.getSession();
-      if(data.session?.user) await ensureContext();
+      if(data.session?.user) await ensureContext(false, data.session.user);
       else showOnly("authSection");
       supabase.auth.onAuthStateChange(async(event, session)=>{
         if(event === 'SIGNED_OUT' || !session?.user){
           clearStoredAuthSession();
           resetAppState();
+          finishAuthShell();
           showLoginScreen();
           stopBoot();
           authActionInFlight = false;
@@ -917,7 +938,7 @@ async function init(){
         if(authActionInFlight && event === 'SIGNED_IN'){
           return;
         }
-        await ensureContext();
+        await ensureContext(false, session?.user || null);
       });
     }
     if(qs("customerBizName")){
