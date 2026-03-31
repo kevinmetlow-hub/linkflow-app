@@ -117,8 +117,10 @@ async function signOut(){
 }
 
 async function ensureContext(){
-  const {data}=await supabase.auth.getUser();
-  state.user=data.user||null;
+  const sessionRes = await supabase.auth.getSession();
+  const user = sessionRes?.data?.session?.user;
+  state.user = user || null;
+  if(!state.user){ showOnly("authSection"); return; }
   if(!state.user){
     state.business={id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement",logoData:""};
     state.services=[]; state.jobs=[]; state.jobExtras={};
