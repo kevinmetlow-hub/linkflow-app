@@ -653,3 +653,34 @@ button.primary,
     gap:10px;
   }
 }
+
+
+.toggle-group{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:6px;
+  border-radius:18px;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  min-height:54px;
+  align-items:center;
+}
+.toggle-pill{
+  padding:10px 14px;
+  border-radius:14px;
+  background:transparent;
+  border:1px solid transparent;
+  box-shadow:none;
+  font-size:13px;
+  font-weight:700;
+}
+.toggle-pill.active{
+  background:linear-gradient(180deg,var(--accent),#14b8ff);
+  color:#04131c;
+  border:none;
+  box-shadow:0 10px 20px rgba(68,200,255,.20);
+}
+.question-type-toggle .toggle-pill{
+  padding:9px 12px;
+}
