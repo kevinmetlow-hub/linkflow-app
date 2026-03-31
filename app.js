@@ -72,7 +72,41 @@ function openCall(job){if(!job?.phone)return alert("No phone number."); window.l
 
 async function signUp(){const email=qs("signupEmail").value.trim(), password=qs("signupPassword").value; const {error}=await supabase.auth.signUp({email,password}); if(error)return alert(error.message); const r=await supabase.auth.signInWithPassword({email,password}); if(r.error)alert("Account created. Check your email if confirmation is required.");}
 async function signIn(){const email=qs("loginEmail").value.trim(), password=qs("loginPassword").value; const {error}=await supabase.auth.signInWithPassword({email,password}); if(error)alert(error.message)}
-async function signOut(){await supabase.auth.signOut()}
+async function signOut(){
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  state.user = null;
+  state.business = {
+    id: null,
+    name: "",
+    phone: "",
+    slug: "",
+    mode: "both",
+    agreementTitle: "Service Agreement"
+  };
+  state.services = [];
+  state.jobs = [];
+  state.editingServiceId = null;
+  state.editingDraft = null;
+  state.currentQuote = 0;
+  state.currentServiceId = null;
+  state.latestAnswers = [];
+  state.activeJobId = null;
+  state.homeStatusFilter = "scheduled";
+  state.jobExtras = {};
+
+  try {
+    localStorage.removeItem(localKey("jobExtras"));
+  } catch (e) {}
+
+  showOnly("authSection");
+  window.location.reload();
+}
 
 async function ensureContext(){
   const {data}=await supabase.auth.getUser(); state.user=data.user||null;
