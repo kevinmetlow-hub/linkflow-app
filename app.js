@@ -194,7 +194,7 @@ function renderTemplatePreview(){
       const opts = (q.options || []).map(opt => Array.isArray(opt) ? opt[0] : opt.label).join(", ");
       return `<div class="mini">• ${q.label}${opts ? ` — ${opts}` : ""}</div>`;
     }).join("");
-    return `<div class="template-preview-item"><strong>${service.name}</strong><div class="mini">${service.mode === "quote" ? "Get Quote" : "Book Appointment"}${service.base ? ` · Base ${money(service.base)}` : ""}</div>${qHtml}</div>`;
+    return `<div class="template-preview-item"><strong>${service.name}</strong><div class="mini">${service.mode === "quote" ? "Instant Quote" : "Book Appointment"}${service.base ? ` · Base ${money(service.base)}` : ""}</div>${qHtml}</div>`;
   }).join("");
 }
 
@@ -219,7 +219,7 @@ function renderJobs(){
   if(recent) recent.innerHTML = filtered.length ? filtered.map(cardHtml).join("") : empty;
 }
 function openJobDetails(id){const j=state.jobs.find(x=>x.id===id); if(!j)return; state.activeJobId=id; qs("jobDetailTitle").textContent=j.customer||"Order"; qs("jobDetailDate").textContent=formatDisplayDate(j.scheduleDate,j.scheduleTime); qs("jobDetailCustomer").textContent=j.customer||""; qs("jobDetailPhone").textContent=j.phone||""; qs("jobDetailAddress").textContent=j.address||""; qs("jobDetailService").textContent=j.serviceName||""; qs("jobDetailPrice").textContent=j.mode==="estimate"?"Appointment":money(j.price); qs("jobDetailStatus").textContent=statusLabel(j.status); qs("jobDetailAnswers").innerHTML=(j.answers||[]).length?j.answers.map(a=>`<div>${escapeHtml(a.question)}: ${escapeHtml(a.answer)}</div>`).join(""):"No saved answers."; openModal("jobDetailModal")}
-function renderServicesList(){const box=qs("serviceList"); if(!box)return; box.innerHTML=state.services.length?state.services.map(s=>`<div class="service-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><strong>${escapeHtml(s.name)}</strong><div class="mini">${effectiveModeForService(s)==="quote"?"Get Quote":"Book Appointment"} · Base ${money(s.base)}</div><div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div></div><button data-edit-service="${s.id}">Edit</button></div></div>`).join(""):'<div class="service-card"><div class="mini">No services yet.</div></div>'}
+function renderServicesList(){const box=qs("serviceList"); if(!box)return; box.innerHTML=state.services.length?state.services.map(s=>`<div class="service-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><strong>${escapeHtml(s.name)}</strong><div class="mini">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · Base ${money(s.base)}</div><div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div></div><button data-edit-service="${s.id}">Edit</button></div></div>`).join(""):'<div class="service-card"><div class="mini">No services yet.</div></div>'}
 function ensureQ(q){if(q.type==="yesno"&&(!q.options||q.options.length!==2))q.options=[{id:uid("opt"),label:"Yes",modifierType:"fixed",modifierValue:0},{id:uid("opt"),label:"No",modifierType:"fixed",modifierValue:0}]; if((q.type==="text"||q.type==="number")&&!q.options)q.options=[]; if(q.type==="multiple"&&(!q.options||!q.options.length))q.options=[{id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0}]}
 function syncDraft(){if(!state.editingDraft)return; state.editingDraft.name=qs("editServiceName").value.trim()||"Untitled Service"; state.editingDraft.base=parseFloat(qs("editServiceBase").value)||0; state.editingDraft.mode=qs("editServiceMode").value; state.editingDraft.questions=(state.editingDraft.questions||[]).map(q=>{const t=document.querySelector(`[data-q-type="${q.id}"]`)?.value||q.type; const l=document.querySelector(`[data-q-label="${q.id}"]`)?.value?.trim()||q.label; let opts=[]; if(t==="multiple"||t==="yesno"){opts=(q.options||[]).map(o=>{const k=`${q.id}__${o.id}`; return {...o,label:document.querySelector(`[data-opt-label="${k}"]`)?.value?.trim()||o.label,modifierType:"fixed",modifierValue:parseFloat(document.querySelector(`[data-opt-value="${k}"]`)?.value)||0}})} return {...q,label:l,type:t,options:opts}})}
 function commitDraft(){if(!state.editingDraft||!state.editingServiceId)return; const i=state.services.findIndex(s=>s.id===state.editingServiceId); if(i>=0)state.services[i]=clone(state.editingDraft)}
@@ -264,7 +264,15 @@ function renderQuestionEditor(service){
       <div class="question-body">
         <div class="row">
           <div><label>Question to ask customer</label><input data-q-label="${q.id}" value="${escapeHtml(q.label)}" placeholder="Ex: How big is the job?"></div>
-          <div><label>Question type</label><select data-q-type="${q.id}" class="q-type-select"><option value="multiple" ${q.type==="multiple"?"selected":""}>Multiple Choice</option><option value="yesno" ${q.type==="yesno"?"selected":""}>Yes / No</option><option value="text" ${q.type==="text"?"selected":""}>Text</option><option value="number" ${q.type==="number"?"selected":""}>Number</option></select></div>
+          <div><label>Question type</label>
+          <div class="toggle-group question-type-toggle" data-question-id="${q.id}">
+            <button type="button" class="toggle-pill ${q.type==="multiple"?"active":""}" data-question-type="multiple" data-question-id="${q.id}">Multiple</button>
+            <button type="button" class="toggle-pill ${q.type==="yesno"?"active":""}" data-question-type="yesno" data-question-id="${q.id}">Yes / No</button>
+            <button type="button" class="toggle-pill ${q.type==="text"?"active":""}" data-question-type="text" data-question-id="${q.id}">Text</button>
+            <button type="button" class="toggle-pill ${q.type==="number"?"active":""}" data-question-type="number" data-question-id="${q.id}">Number</button>
+          </div>
+          <input type="hidden" data-q-type="${q.id}" value="${q.type}">
+        </div>
         </div>
         ${pricingInfo}
         ${optionsUI}
@@ -272,7 +280,9 @@ function renderQuestionEditor(service){
       </div>
     </details>`;
   }).join("");
-}function openServiceEditor(id){const s=state.services.find(x=>x.id===id); if(!s)return; state.editingServiceId=id; state.editingDraft=clone(s); qs("editorTitle").textContent=s.name; qs("editServiceName").value=s.name; qs("editServiceBase").value=s.base; qs("editServiceMode").value=s.mode; renderQuestionEditor(state.editingDraft); switchScreen("editor")}
+}function openServiceEditor(id){const s=state.services.find(x=>x.id===id); if(!s)return; state.editingServiceId=id; state.editingDraft=clone(s); qs("editorTitle").textContent=s.name; qs("editServiceName").value=s.name; qs("editServiceBase").value=s.base; qs("editServiceMode").value=s.mode;
+  qsa("[data-service-mode]").forEach(b=>b.classList.toggle("active", b.getAttribute("data-service-mode")===s.mode));
+  renderQuestionEditor(state.editingDraft); switchScreen("editor")}
 function addQuestionOfType(type){
   if(!state.editingDraft)return;
   syncDraft();
@@ -362,8 +372,26 @@ function bindContractorEvents(){
   });
   qs("saveServiceBtn")?.addEventListener("click",saveServiceEditor); qs("deleteServiceBtn")?.addEventListener("click",deleteService); qs("saveSettingsBtn")?.addEventListener("click",saveSettings);
   ["editServiceName","editServiceBase","editServiceMode"].forEach(id=>{qs(id)?.addEventListener("input",()=>{syncDraft(); commitDraft(); renderServicesList()}); qs(id)?.addEventListener("change",()=>{syncDraft(); commitDraft(); renderServicesList()})});
+  qsa("[data-service-mode]").forEach(btn=>btn.addEventListener("click",()=>{
+    qsa("[data-service-mode]").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    if(qs("editServiceMode")) qs("editServiceMode").value = btn.getAttribute("data-service-mode");
+    syncDraft(); commitDraft(); renderServicesList();
+  }));
   document.addEventListener("input",e=>{if(e.target.matches('[data-q-label]')||e.target.matches('[data-opt-label]')||e.target.matches('[data-opt-value]')){syncDraft(); commitDraft(); renderServicesList()}});
-  document.addEventListener("change",e=>{if(e.target.matches('[data-opt-type]')){syncDraft(); commitDraft(); renderServicesList()} if(e.target.matches('.q-type-select'))updateQuestionType(e.target.getAttribute('data-q-type'),e.target.value)});
+  document.addEventListener("change",e=>{if(e.target.matches('[data-opt-type]')){syncDraft(); commitDraft(); renderServicesList()}});
+  document.addEventListener("click", e => {
+    const qTypeBtn = e.target.closest("[data-question-type]");
+    if(qTypeBtn){
+      const qid = qTypeBtn.getAttribute("data-question-id");
+      const type = qTypeBtn.getAttribute("data-question-type");
+      document.querySelectorAll(`[data-question-id="${qid}"][data-question-type]`).forEach(b => b.classList.remove("active"));
+      qTypeBtn.classList.add("active");
+      const hidden = document.querySelector(`[data-q-type="${qid}"]`);
+      if(hidden) hidden.value = type;
+      updateQuestionType(qid, type);
+    }
+  });
   document.addEventListener("click",e=>{
     const editId=e.target.getAttribute("data-edit-service"); if(editId)openServiceEditor(editId);
     const addOpt=e.target.getAttribute("data-add-option"); if(addOpt)addOption(addOpt);
