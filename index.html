@@ -41,25 +41,35 @@
   </section>
 
   <section id="onboardingSection" class="center-shell hidden">
-    <div class="glass auth-card">
+    <div class="glass onboarding-card">
       <div class="eyebrow">First-time setup</div>
       <h2>What type of business do you run?</h2>
-      <p class="sub">Pick a template so LinkFlow can preload services and questions for you.</p>
+      <p class="sub">Pick a template. The starter services and questions preview will update right away.</p>
 
-      <label>Business name</label>
-      <input id="onboardBusinessName" placeholder="Sunshine Pressure Washing" />
+      <div class="row">
+        <div>
+          <label>Business name</label>
+          <input id="onboardBusinessName" placeholder="Sunshine Pressure Washing" />
 
-      <div class="template-grid mt12">
-        <button class="template-btn" data-template="pressure_washing">Pressure Washing</button>
-        <button class="template-btn" data-template="car_detailing">Car Detailing</button>
-        <button class="template-btn" data-template="lawn_service">Lawn Service</button>
-        <button class="template-btn" data-template="handyman">Handyman</button>
-        <button class="template-btn" data-template="junk_removal">Junk Removal</button>
-        <button class="template-btn" data-template="scratch">Start From Scratch</button>
-      </div>
+          <div class="template-grid mt12">
+            <button class="template-btn" data-template="pressure_washing">Pressure Washing</button>
+            <button class="template-btn" data-template="car_detailing">Car Detailing</button>
+            <button class="template-btn" data-template="lawn_service">Lawn Service</button>
+            <button class="template-btn" data-template="handyman">Handyman</button>
+            <button class="template-btn" data-template="junk_removal">Junk Removal</button>
+            <button class="template-btn" data-template="scratch">Start From Scratch</button>
+          </div>
 
-      <div class="btn-row">
-        <button id="finishOnboardingBtn" class="primary">Continue</button>
+          <div class="btn-row">
+            <button id="finishOnboardingBtn" class="primary">Create My Starter Setup</button>
+          </div>
+        </div>
+
+        <div class="glass preview-card">
+          <div class="eyebrow">Starter preview</div>
+          <h3 id="templatePreviewTitle">Pressure Washing</h3>
+          <div id="templatePreviewBody" class="stack"></div>
+        </div>
       </div>
     </div>
   </section>
