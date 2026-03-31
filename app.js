@@ -36,7 +36,14 @@ function setInlineStatus(elId,msg,kind="info"){const el=qs(elId); if(!el)return;
 function setCustomerStepPill(step,total=4){const el=qs("customerStepPill"); if(el) el.textContent=`Step ${step} of ${total}`;}
 function setButtonLoading(id,isLoading,label){const btn=qs(id); if(!btn)return; if(isLoading){btn.dataset.originalLabel = btn.dataset.originalLabel || btn.textContent; btn.textContent = label || "Loading..."; btn.disabled = true;} else {btn.textContent = btn.dataset.originalLabel || btn.textContent; btn.disabled = false;}}
 function validateCustomerLead(){const name=(qs("custName")?.value||"").trim(), phone=(qs("custPhone")?.value||"").trim(), address=(qs("custAddress")?.value||"").trim(); if(!qs("custService")?.value) return "Please select a service."; if(!name) return "Please enter your name."; if(!phone) return "Please enter your phone number."; if(!address) return "Please enter your address."; return "";}
-function saveLocalExtras(){localStorage.setItem(localKey("jobExtras"),JSON.stringify(state.jobExtras||{}))}
+function saveLocalExtras(){
+  try{
+    if(!state.user) return; // avoid quota issues on public customer page
+    localStorage.setItem(localKey("jobExtras"),JSON.stringify(state.jobExtras||{}));
+  }catch(e){
+    console.warn("local extras skipped", e);
+  }
+}
 function loadLocalExtras(){try{state.jobExtras=JSON.parse(localStorage.getItem(localKey("jobExtras"))||"{}")}catch(e){state.jobExtras={}}}
 
 function setLogoUI(logoData){
@@ -349,14 +356,19 @@ async function submitPublicBooking(){
     if(error) throw error;
     const metaSaved=await upsertJobMeta(ins.id,{status:"scheduled",agreementHtml,answers:state.latestAnswers||[],signatureData});
     if(!metaSaved) console.warn("job_meta not saved", ins.id);
-    state.jobExtras[ins.id]={status:"scheduled",agreementHtml,answers:state.latestAnswers||[]};
+    state.jobExtras[ins.id]={status:"scheduled",answers:state.latestAnswers||[]};
     saveLocalExtras();
     qs("confirmText").textContent=`${svc.name} · ${mode==="estimate"?"Appointment":money(state.currentQuote)} · ${formatDisplayDate(scheduleDate,scheduleTime)}`;
     goStep("customerStep5");
     setCustomerStepPill(4,4);
   }catch(err){
     console.error(err);
-    setInlineStatus("customerSubmitError", err?.message || "Something went wrong while booking. Please try again.", "error");
+    const msg = String(err?.message || "Something went wrong while booking. Please try again.");
+    if(msg.toLowerCase().includes("quota")){
+      setInlineStatus("customerSubmitError", "Your booking saved, but this browser hit a storage limit. Please continue.", "error");
+    } else {
+      setInlineStatus("customerSubmitError", msg, "error");
+    }
   }finally{
     state.isSubmitting=false;
     setButtonLoading("finishBookingBtn", false);
