@@ -90,18 +90,14 @@ function openSms(job,kind){if(!job?.phone)return alert("No phone number."); cons
 function openCall(job){if(!job?.phone)return alert("No phone number."); window.location.href=`tel:${job.phone}`}
 
 async function signUp(){
-  const email=(qs("signupEmail")?.value||"").trim();
-  const password=qs("signupPassword")?.value||"";
-  if(!email || !password){
-    setInlineStatus("signupInlineStatus","Enter your email and password.","error");
-    return;
-  }
+  const email=(qs("signupEmail")?.value||"").trim(), password=qs("signupPassword")?.value||"";
+  if(!email || !password){ setInlineStatus("signupInlineStatus","Enter your email and password.","error"); return; }
   setInlineStatus("signupInlineStatus","");
-  setButtonLoading("signupBtn", true, "Creating...");
+  setButtonLoading("signupBtn",true,"Creating...");
   try{
-    const { error } = await supabase.auth.signUp({ email, password });
+    const {error}=await supabase.auth.signUp({email,password});
     if(error) throw error;
-    const r = await supabase.auth.signInWithPassword({ email, password });
+    const r=await supabase.auth.signInWithPassword({email,password});
     if(r.error){
       setInlineStatus("signupInlineStatus","Account created. Check your email if confirmation is required.","info");
       return;
@@ -110,26 +106,22 @@ async function signUp(){
   }catch(err){
     setInlineStatus("signupInlineStatus", err?.message || "Could not create account.", "error");
   }finally{
-    setButtonLoading("signupBtn", false);
+    setButtonLoading("signupBtn",false);
   }
 }
 async function signIn(){
-  const email=(qs("loginEmail")?.value||"").trim();
-  const password=qs("loginPassword")?.value||"";
-  if(!email || !password){
-    setInlineStatus("authInlineStatus","Enter your email and password.","error");
-    return;
-  }
+  const email=(qs("loginEmail")?.value||"").trim(), password=qs("loginPassword")?.value||"";
+  if(!email || !password){ setInlineStatus("authInlineStatus","Enter your email and password.","error"); return; }
   setInlineStatus("authInlineStatus","");
-  setButtonLoading("loginBtn", true, "Logging in...");
+  setButtonLoading("loginBtn",true,"Logging in...");
   try{
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const {error}=await supabase.auth.signInWithPassword({email,password});
     if(error) throw error;
     await ensureContext();
   }catch(err){
     setInlineStatus("authInlineStatus", err?.message || "Login failed.", "error");
   }finally{
-    setButtonLoading("loginBtn", false);
+    setButtonLoading("loginBtn",false);
   }
 }
 async function signOut(){await supabase.auth.signOut()}
@@ -372,7 +364,7 @@ async function saveSettings(){await requireUser(); state.business.name=qs("bizNa
   alert("Profile saved.")
 }
 function switchScreen(name){qsa(".screen").forEach(s=>s.classList.remove("active")); qs("screen-"+name)?.classList.add("active"); qsa(".nav-btn").forEach(b=>b.classList.remove("active")); document.querySelector(`.nav-btn[data-screen="${name}"]`)?.classList.add("active")}
-function renderEverything(){renderSharedBits(); renderMetrics(); renderJobs(); renderServicesList()}
+function renderEverything(){renderSharedBits(); renderMetrics(); renderJobs(); renderServicesList(); if (typeof bindServiceCardInteractions === "function") bindServiceCardInteractions()}
 function applyModifier(total,t,v){v=Number(v||0); if(t==="fixed")return total+v; if(t==="percent")return total+(total*(v/100)); if(t==="multiplier")return total*v; return total}
 function modifierText(o){const v=Number(o.modifierValue||0); if(o.modifierType==="fixed")return `${v>=0?"+":""}${money(v)}`; if(o.modifierType==="percent")return `${v>=0?"+":""}${v}%`; if(o.modifierType==="multiplier")return `x${v}`; return ""}
 function renderCustomerServices(){const sel=qs("custService"); if(!sel)return; sel.innerHTML=state.services.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join(""); state.currentServiceId=state.services[0]?.id||null; renderCustomerQuestions()}
@@ -466,29 +458,3 @@ function bindCustomerEvents(){qs("custService")?.addEventListener("change",rende
 
 async function init(){initSignature("customerSig"); if(qs("authSection")){bindContractorEvents(); const {data}=await supabase.auth.getSession(); if(data.session?.user)await ensureContext(); else showOnly("authSection"); supabase.auth.onAuthStateChange(async()=>{await ensureContext()})} if(qs("customerBizName")){bindCustomerEvents(); await publicLoadBySlug()}}
 init();
-
-
-function setInlineStatus(id, message, type="info"){
-  const el = qs(id);
-  if(!el) return;
-  if(!message){
-    el.className = "inline-status hidden";
-    el.textContent = "";
-    return;
-  }
-  el.className = `inline-status ${type}`;
-  el.textContent = message;
-}
-
-function setButtonLoading(id, isLoading, loadingText="Loading..."){
-  const btn = qs(id);
-  if(!btn) return;
-  if(isLoading){
-    if(!btn.dataset.originalText) btn.dataset.originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = loadingText;
-  }else{
-    btn.disabled = false;
-    if(btn.dataset.originalText) btn.textContent = btn.dataset.originalText;
-  }
-}
