@@ -1054,69 +1054,84 @@ details[open] .expand-line-b{
 #authInlineStatus,#signupInlineStatus,#customerSubmitError{margin:12px 0 0;}
 
 
-/* Compact tab hero borders */
-.tab-hero{
+.compact-screen-head{
   display:flex;
-  align-items:center;
   justify-content:space-between;
-  gap:16px;
-  padding:18px 20px;
-  margin-bottom:14px;
-  border-radius:24px;
-  border:1px solid rgba(255,255,255,.08);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
-    rgba(13,20,34,.82);
-  box-shadow:0 18px 40px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.03);
+  align-items:flex-start;
+  gap:12px;
+  margin:4px 0 14px;
 }
-.tab-hero h2{
-  margin:0;
+
+.inside-card-head{
+  margin:0 0 18px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--line);
+}
+
+.page-title{
+  margin:0 0 6px;
   font-size:28px;
   line-height:1.05;
-  letter-spacing:-.04em;
   color:var(--heading);
 }
-.tab-hero .sub{
-  margin:6px 0 0;
-  max-width:560px;
-}
-.tab-hero .eyebrow{
-  margin-bottom:8px;
-}
-.home-tab-hero{
-  border-color:rgba(68,200,255,.18);
-  background:
-    linear-gradient(135deg, rgba(68,200,255,.10), rgba(124,92,255,.06)),
-    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
-    rgba(13,20,34,.82);
-}
-.services-tab-hero{
-  border-color:rgba(124,92,255,.18);
-  background:
-    linear-gradient(135deg, rgba(124,92,255,.12), rgba(68,200,255,.06)),
-    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
-    rgba(13,20,34,.82);
-}
-.services-tab-hero .eyebrow{color:#bdafff}
-.editor-tab-hero{
-  border-color:rgba(68,200,255,.14);
-}
-.profile-tab-hero{
-  border-color:rgba(255,255,255,.10);
-  background:
-    linear-gradient(135deg, rgba(68,200,255,.08), rgba(255,255,255,.03)),
-    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
-    rgba(13,20,34,.82);
-}
-.modal-tab-hero{
+
+.modal-head{
   margin-bottom:16px;
 }
+
+#screen-settings .editor-card{
+  padding-top:20px;
+}
+
+#quoteModeToggle{
+  min-height:unset;
+}
+
 @media(max-width:760px){
-  .tab-hero{
-    padding:16px;
-    align-items:flex-start;
+  .compact-screen-head{
     flex-direction:column;
+    align-items:stretch;
   }
-  .tab-hero h2{font-size:24px}
-  .tab-hero .sub{max-width:none}
+  .compact-screen-head .small-btn,
+  .compact-screen-head .primary{
+    width:100%;
+  }
+  .page-title{
+    font-size:24px;
+  }
+}
+
+
+/* ===== Pass 5: restored bordered tab hero without breaking app ===== */
+.tab-hero{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin:0 0 16px;
+  padding:16px 18px;
+  border-radius:20px;
+  border:1px solid rgba(15,23,42,.08);
+  background:rgba(255,255,255,.88);
+  box-shadow:0 10px 28px rgba(15,23,42,.06);
+}
+.tab-hero .page-title,
+.tab-hero h2{
+  margin:4px 0 0;
+}
+.tab-hero .helper,
+.tab-hero .sub{
+  margin-top:6px;
+}
+.profile-tab-hero{
+  margin-bottom:14px;
+}
+.modal-head.tab-hero{
+  margin-bottom:14px;
+}
+@media (max-width: 720px){
+  .tab-hero{
+    flex-direction:column;
+    align-items:stretch;
+  }
 }
