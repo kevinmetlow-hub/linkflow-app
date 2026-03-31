@@ -36,3 +36,9 @@ button{border:1px solid var(--line);background:rgba(255,255,255,.84);color:var(-
 .preview-card{border-radius:28px;padding:18px}
 .template-preview-item{border:1px solid rgba(16,24,40,.06);background:rgba(255,255,255,.76);border-radius:18px;padding:12px;box-shadow:var(--shadow-soft)}
 .template-preview-item strong{display:block;margin-bottom:6px}
+
+
+.logo-preview{max-width:140px;max-height:140px;display:block;border-radius:18px;border:1px solid rgba(16,24,40,.08);background:#fff;padding:8px}
+.customer-logo-wrap,.agreement-logo-wrap{display:flex;justify-content:center;margin-bottom:12px}
+.customer-logo{max-width:120px;max-height:120px;object-fit:contain;border-radius:18px;background:#fff;padding:8px;border:1px solid rgba(16,24,40,.08)}
+.agreement-logo{max-width:120px;max-height:100px;object-fit:contain;margin-bottom:8px}
