@@ -530,3 +530,74 @@ button.primary,
   }
   .app-header{top:0}
 }
+
+
+/* Smaller utility buttons in Services */
+.question-body .danger-btn,
+.question-body button:not(.primary),
+.btn-row button:not(.primary):not(.nav-btn):not(.seg-btn):not(.template-btn):not(.small-btn){
+  padding:10px 14px;
+  font-size:14px;
+  border-radius:18px;
+}
+
+.question-body .btn-row{
+  gap:8px;
+}
+
+.simple-option-row button,
+.question-body .danger-btn{
+  min-height:auto;
+}
+
+/* Compact horizontal job cards */
+#recentJobs .job-card,
+#jobList .job-card{
+  padding:14px 16px;
+}
+
+#recentJobs .job-card > div,
+#jobList .job-card > div{
+  display:grid !important;
+  grid-template-columns:minmax(0,1.35fr) auto;
+  align-items:center;
+  gap:14px;
+}
+
+#recentJobs .job-card strong,
+#jobList .job-card strong{
+  font-size:18px;
+}
+
+#recentJobs .job-card .mini,
+#jobList .job-card .mini{
+  font-size:13px;
+  line-height:1.4;
+}
+
+#recentJobs .job-card .btn-row,
+#jobList .job-card .btn-row{
+  margin-top:0 !important;
+}
+
+.job-open-hit{
+  cursor:pointer;
+  transition:transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+}
+.job-open-hit:hover{
+  transform:translateY(-1px);
+  border-color:rgba(10,132,255,.18);
+}
+.job-open-arrow{
+  font-size:22px;
+  color:#0a84ff;
+  padding:6px 4px;
+}
+
+@media (max-width:760px){
+  #recentJobs .job-card > div,
+  #jobList .job-card > div{
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:10px;
+  }
+}
