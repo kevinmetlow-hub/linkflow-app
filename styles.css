@@ -42,3 +42,17 @@ button{border:1px solid var(--line);background:rgba(255,255,255,.84);color:var(-
 .customer-logo-wrap,.agreement-logo-wrap{display:flex;justify-content:center;margin-bottom:12px}
 .customer-logo{max-width:120px;max-height:120px;object-fit:contain;border-radius:18px;background:#fff;padding:8px;border:1px solid rgba(16,24,40,.08)}
 .agreement-logo{max-width:120px;max-height:100px;object-fit:contain;margin-bottom:8px}
+
+
+.quick-add-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.question-shell{border:1px solid rgba(16,24,40,.06);background:rgba(255,255,255,.78);border-radius:22px;box-shadow:var(--shadow-soft);overflow:hidden}
+.question-summary{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.question-summary-left{display:flex;flex-direction:column;gap:4px}
+.question-summary-title{font-weight:700}
+.question-summary-type{font-size:12px;color:var(--muted)}
+.question-body{padding:0 16px 16px 16px;border-top:1px solid rgba(16,24,40,.06)}
+.price-helper{font-size:12px;color:var(--muted);margin:6px 0 10px}
+.simple-option-head,.simple-option-row{display:grid;grid-template-columns:1.4fr .8fr auto;gap:8px;align-items:end}
+.simple-option-head{font-size:12px;color:var(--muted);font-weight:700;padding:0 2px 6px}
+@media(max-width:760px){.simple-option-head,.simple-option-row{grid-template-columns:1fr}}
+.question-empty{padding:18px;border:1px dashed rgba(16,24,40,.12);border-radius:20px;background:rgba(255,255,255,.55)}
