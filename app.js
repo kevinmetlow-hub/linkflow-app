@@ -224,10 +224,10 @@ function renderQuestionEditor(service){
   box.innerHTML = service.questions.map((q, idx) => {
     ensureQ(q);
     const pricingInfo = q.type==="multiple"
-      ? '<div class="price-helper">For each choice, enter how much to add to the starting price.</div>'
+      ? '<div class="price-helper">Each choice can add to the starting price.</div>'
       : q.type==="yesno"
-      ? '<div class="price-helper">Set how much “Yes” or “No” should add to the price.</div>'
-      : '<div class="price-helper">This question collects information only. It does not change price.</div>';
+      ? '<div class="price-helper">Set how much Yes or No should add to the price.</div>'
+      : '<div class="price-helper">This question is only for customer details.</div>';
 
     const optionsUI = (q.type==="multiple"||q.type==="yesno")
       ? `<div class="simple-option-head"><div>${q.type==="yesno"?"Answer":"Choice"}</div><div>Add to price ($)</div><div></div></div>
@@ -327,7 +327,17 @@ function bindContractorEvents(){
   qs("openBookingPageBtn2")?.addEventListener("click",()=>window.open(`${window.location.origin}/customer.html?slug=${state.business.slug}`,"_blank"));
   qs("homeStatusFilter")?.addEventListener("change",renderJobs); document.querySelectorAll("[data-close-modal]").forEach(el=>el.addEventListener("click",()=>closeModal(el.getAttribute("data-close-modal"))));
   qs("newServiceBtn")?.addEventListener("click",()=>{const s={id:uid("svc"),name:"New Service",base:0,mode:"quote",questions:[]}; state.services.push(s); renderServicesList(); openServiceEditor(s.id)});
-  qs("backToServicesBtn")?.addEventListener("click",()=>switchScreen("services")); qs("addQuestionBtn")?.addEventListener("click",addQuestion); qs("addMultipleBtn")?.addEventListener("click",()=>addQuestionOfType("multiple")); qs("addYesNoBtn")?.addEventListener("click",()=>addQuestionOfType("yesno")); qs("addTextBtn")?.addEventListener("click",()=>addQuestionOfType("text")); qs("addNumberBtn")?.addEventListener("click",()=>addQuestionOfType("number")); qs("saveServiceBtn")?.addEventListener("click",saveServiceEditor); qs("deleteServiceBtn")?.addEventListener("click",deleteService); qs("saveSettingsBtn")?.addEventListener("click",saveSettings);
+  qs("backToServicesBtn")?.addEventListener("click",()=>switchScreen("services"));
+  qs("addQuestionBtn")?.addEventListener("click",()=>{
+    const choice = window.prompt("Add which question type?\nType: multiple, yesno, text, or number","multiple");
+    if(!choice) return;
+    const cleaned = choice.toLowerCase().trim();
+    const map = {multiple:"multiple","multiple choice":"multiple","yesno":"yesno","yes/no":"yesno","yes or no":"yesno",text:"text",number:"number"};
+    const type = map[cleaned];
+    if(!type){ alert("Please type: multiple, yesno, text, or number."); return; }
+    addQuestionOfType(type);
+  });
+  qs("saveServiceBtn")?.addEventListener("click",saveServiceEditor); qs("deleteServiceBtn")?.addEventListener("click",deleteService); qs("saveSettingsBtn")?.addEventListener("click",saveSettings);
   ["editServiceName","editServiceBase","editServiceMode"].forEach(id=>{qs(id)?.addEventListener("input",()=>{syncDraft(); commitDraft(); renderServicesList()}); qs(id)?.addEventListener("change",()=>{syncDraft(); commitDraft(); renderServicesList()})});
   document.addEventListener("input",e=>{if(e.target.matches('[data-q-label]')||e.target.matches('[data-opt-label]')||e.target.matches('[data-opt-value]')){syncDraft(); commitDraft(); renderServicesList()}});
   document.addEventListener("change",e=>{if(e.target.matches('[data-opt-type]')){syncDraft(); commitDraft(); renderServicesList()} if(e.target.matches('.q-type-select'))updateQuestionType(e.target.getAttribute('data-q-type'),e.target.value)});
