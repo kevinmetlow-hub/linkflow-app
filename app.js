@@ -259,7 +259,13 @@ function renderQuestionEditor(service){
           <div class="question-summary-title">${escapeHtml(q.label || "New question")}</div>
           <div class="question-summary-type">${niceQuestionType(q.type)}</div>
         </div>
-        <span class="chip">${niceQuestionType(q.type)}</span>
+        <div class="question-summary-right">
+          <span class="chip">${niceQuestionType(q.type)}</span>
+          <span class="expand-indicator" aria-hidden="true">
+            <span class="expand-line expand-line-a"></span>
+            <span class="expand-line expand-line-b"></span>
+          </span>
+        </div>
       </summary>
       <div class="question-body">
         <div class="row">
