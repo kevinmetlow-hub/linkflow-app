@@ -993,3 +993,56 @@ details[open] .expand-line-b{
 .profile-hero .eyebrow{
   color:#9ce7ff;
 }
+
+
+/* Dynamic tab hero states */
+#dynamicTabHero{
+  transition:background .28s ease, border-color .28s ease, box-shadow .28s ease, transform .18s ease;
+}
+#dynamicTabHero .contractor-h1,
+#dynamicTabHero .contractor-hero-sub,
+#dynamicTabHero .eyebrow{
+  transition:color .22s ease, opacity .22s ease, transform .22s ease;
+}
+#dynamicTabHero .contractor-hero-inner{
+  transition:transform .22s ease;
+}
+#dynamicTabHero .contractor-hero-inner{
+  animation:heroTabFade .26s ease;
+}
+@keyframes heroTabFade{
+  0%{opacity:.72; transform:translateY(4px)}
+  100%{opacity:1; transform:translateY(0)}
+}
+
+.home-hero{
+  border-color:rgba(68,200,255,.16);
+}
+.services-hero{
+  border-color:rgba(124,92,255,.16);
+  background:
+    linear-gradient(135deg, rgba(124,92,255,.16), rgba(68,200,255,.10)),
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+    var(--panel-2) !important;
+}
+.services-hero .contractor-hero-bg{
+  background:
+    radial-gradient(circle at 18% 28%, rgba(124,92,255,.32), transparent 20%),
+    radial-gradient(circle at 84% 14%, rgba(68,200,255,.24), transparent 18%);
+}
+.services-hero .eyebrow{color:#bdafff}
+.services-hero .contractor-hero-sub{color:#d5ccff}
+
+.profile-hero{
+  border-color:rgba(255,255,255,.08);
+  background:
+    linear-gradient(135deg, rgba(68,200,255,.10), rgba(255,255,255,.03)),
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+    var(--panel-2) !important;
+}
+.profile-hero .contractor-hero-bg{
+  background:
+    radial-gradient(circle at 16% 26%, rgba(68,200,255,.26), transparent 18%),
+    radial-gradient(circle at 84% 14%, rgba(255,255,255,.08), transparent 18%);
+}
+.profile-hero .eyebrow{color:#9ce7ff}
