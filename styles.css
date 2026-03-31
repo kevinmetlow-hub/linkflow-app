@@ -1384,3 +1384,51 @@ body:not(.app-loading) .app-boot-screen{
     align-items:flex-start;
   }
 }
+
+
+/* Compact service cards */
+.service-card-compact{
+  padding:12px;
+  gap:10px;
+}
+.service-card-compact .service-header{
+  padding:12px 14px;
+  border-radius:16px;
+}
+.service-card-compact .service-title{
+  font-size:17px;
+}
+.service-card-compact .service-meta{
+  font-size:11px;
+  letter-spacing:.10em;
+}
+.service-card-compact .service-price{
+  font-size:15px;
+  padding:6px 10px;
+}
+.service-card-compact .service-preview-line{
+  margin-top:0;
+  padding:0 4px;
+}
+.service-preview-mini{
+  color:var(--muted);
+  font-size:12px;
+}
+.service-clickable{
+  cursor:pointer;
+  width:100%;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.service-clickable:hover{
+  border-color:rgba(68,200,255,.18);
+  transform:translateY(-2px);
+}
+.service-clickable:active{
+  transform:scale(.995);
+}
+.service-clickable:focus-visible{
+  outline:none;
+  border-color:rgba(68,200,255,.28);
+  box-shadow:0 0 0 4px rgba(68,200,255,.10), var(--shadow-soft);
+}
