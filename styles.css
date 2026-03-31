@@ -1034,143 +1034,7 @@ details[open] .expand-line-b{
 .profile-hero .eyebrow{color:#9ce7ff}
 
 
-/* Boot screen / auth flash prevention */
-body.app-loading #authSection,
-body.app-loading #onboardingSection,
-body.app-loading #appShell,
-body.app-loading .customer-shell{visibility:hidden}
-.app-boot-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at top left, rgba(68,200,255,.14), transparent 22%),radial-gradient(circle at top right, rgba(124,92,255,.10), transparent 20%),linear-gradient(180deg,var(--bg-1) 0%, var(--bg-2) 46%, var(--bg-3) 100%)}
-body:not(.app-loading) .app-boot-screen{display:none}
-.app-boot-card{display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px 28px;border-radius:22px;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)), var(--panel-soft);border:1px solid var(--line);box-shadow:var(--shadow);min-width:170px}
-.app-boot-logo{font-weight:800;font-size:22px;letter-spacing:-.03em;color:var(--heading)}
-.app-boot-spinner{width:26px;height:26px;border-radius:999px;border:3px solid rgba(255,255,255,.12);border-top-color:var(--accent);animation:bootSpin .8s linear infinite}
-@keyframes bootSpin{to{transform:rotate(360deg)}}
-
-.inline-status{margin:12px 0 0;padding:12px 14px;border-radius:14px;font-size:13px;line-height:1.45;border:1px solid var(--line)}
-.inline-status.info{background:rgba(68,200,255,.08);color:#d7f5ff;border-color:rgba(68,200,255,.18)}
-.inline-status.error{background:rgba(255,107,107,.10);color:#ffd4d4;border-color:rgba(255,107,107,.22)}
-.step-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(68,200,255,.08);border:1px solid rgba(68,200,255,.18);color:#d7f5ff;font-size:12px;font-weight:700;margin-bottom:14px}
-.empty-state-card{padding:20px;border-radius:22px;border:1px dashed var(--line-strong);background:rgba(255,255,255,.02)}
-.empty-state-title{font-size:18px;font-weight:800;color:var(--heading);margin-bottom:6px}
-
-.service-card-compact{padding:12px;gap:10px;appearance:none;text-align:left;width:100%}
-.service-card-compact .service-header{padding:12px 14px;border-radius:16px}
-.service-card-compact .service-title{font-size:17px}
-.service-card-compact .service-meta{font-size:11px;letter-spacing:.10em}
-.service-card-compact .service-price{font-size:15px;padding:6px 10px}
-.service-card-compact .service-preview-line{margin-top:0;padding:0 4px}
-.service-preview-mini{color:var(--muted);font-size:12px}
-.service-clickable{cursor:pointer;width:100%;user-select:none;-webkit-tap-highlight-color:transparent}
-.service-clickable:hover{border-color:rgba(68,200,255,.18);transform:translateY(-2px)}
-.service-clickable:active{transform:scale(.995)}
-.service-clickable:focus-visible{outline:none;border-color:rgba(68,200,255,.28);box-shadow:0 0 0 4px rgba(68,200,255,.10), var(--shadow-soft)}
-
-#screen-settings .toggle-group{background:rgba(255,255,255,.03);border:1px solid var(--line);min-height:56px}
-#screen-settings .toggle-pill{padding:10px 12px;font-size:12px;letter-spacing:.02em}
-#screen-settings .editor-card{padding-top:18px}
-#screen-settings label{color:#c7d4ea;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
-#screen-settings input,#screen-settings select{background:rgba(255,255,255,.03)}
-
-
-/* Signature canvas fix */
-.signature{
-  width:100%;
-  max-width:100%;
-  display:block;
-  box-sizing:border-box;
-  height:150px;
-}
-.doc{
-  overflow:hidden;
-}
-
-
-/* Home screen / installed app polish */
-@media (display-mode: standalone) {
-  body{
-    overscroll-behavior:none;
-  }
-  .app-shell,
-  .customer-shell{
-    padding-top: max(18px, env(safe-area-inset-top));
-  }
-  .bottom-nav{
-    bottom: max(14px, env(safe-area-inset-bottom));
-  }
-  .app-header{
-    top: max(12px, env(safe-area-inset-top));
-  }
-}
-
-/* Job detail modal should feel tighter without top hero */
-#jobDetailModal .modal-panel{
-  padding-top: 18px;
-}
-#jobDetailModal .section-head{
-  margin-top: 0;
-}
-
-/* Service cards as true tappable buttons */
-button.service-card{
-  width:100%;
-  text-align:left;
-  appearance:none;
-  -webkit-appearance:none;
-}
-.service-clickable{
-  cursor:pointer;
-  width:100%;
-  user-select:none;
-  -webkit-tap-highlight-color:transparent;
-}
-.service-clickable:hover{
-  border-color:rgba(68,200,255,.18);
-  transform:translateY(-2px);
-}
-.service-clickable:active{
-  transform:scale(.995);
-}
-.service-clickable:focus-visible{
-  outline:none;
-  border-color:rgba(68,200,255,.28);
-  box-shadow:0 0 0 4px rgba(68,200,255,.10), var(--shadow-soft);
-}
-.service-card-compact{
-  padding:12px;
-  gap:10px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.01)),
-    var(--panel-2);
-}
-.service-card-compact .service-header{
-  padding:12px 14px;
-  border-radius:16px;
-}
-.service-card-compact .service-title{
-  font-size:17px;
-}
-.service-card-compact .service-meta{
-  font-size:11px;
-  letter-spacing:.10em;
-}
-.service-card-compact .service-price{
-  font-size:15px;
-  padding:6px 10px;
-}
-.service-card-compact .service-preview-line{
-  margin-top:0;
-  padding:0 4px;
-}
-.service-preview-mini{
-  color:var(--muted);
-  font-size:12px;
-}
-
-
-/* inline status + loading polish */
-#authInlineStatus,#signupInlineStatus,#customerSubmitError{
-  margin:12px 0 0;
-}
+/* loading / inline status safety */
 .inline-status{
   padding:10px 12px;
   border-radius:14px;
@@ -1188,8 +1052,11 @@ button.service-card{
   background:rgba(68,200,255,.10);
   border-color:rgba(68,200,255,.18);
 }
+#authInlineStatus,#signupInlineStatus,#customerSubmitError{
+  margin:12px 0 0;
+}
 
-/* signature fix */
+/* signature fit */
 .signature{
   width:100%;
   max-width:100%;
@@ -1198,35 +1065,3 @@ button.service-card{
   height:150px;
 }
 .doc{overflow:hidden}
-
-/* skeletons / faster feel */
-.skeleton-card{
-  position:relative;
-  overflow:hidden;
-}
-.skeleton-card::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  transform:translateX(-100%);
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
-  animation:skeletonSweep 1.2s infinite;
-}
-.skeleton-line{
-  height:14px;
-  border-radius:999px;
-  background:rgba(255,255,255,.08);
-  margin:10px 0;
-}
-.skeleton-line.w55{ width:55%; }
-.skeleton-line.w80{ width:80%; }
-
-@keyframes skeletonSweep{ to{ transform:translateX(100%);} }
-
-/* installed app polish */
-@media (display-mode: standalone) {
-  body{ overscroll-behavior:none; }
-  .app-shell,.customer-shell{ padding-top:max(18px, env(safe-area-inset-top)); }
-  .bottom-nav{ bottom:max(14px, env(safe-area-inset-bottom)); }
-  .app-header{ top:max(12px, env(safe-area-inset-top)); }
-}
