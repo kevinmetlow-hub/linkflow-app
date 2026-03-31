@@ -13,6 +13,10 @@ scratch:{businessName:"My Business",services:[]}
 
 let state={user:null,business:{id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement",logoData:""},services:[],jobs:[],editingServiceId:null,editingDraft:null,currentQuote:0,currentServiceId:null,latestAnswers:[],activeJobId:null,homeStatusFilter:"scheduled",selectedTemplate:"pressure_washing",jobExtras:{}};
 
+let authActionInFlight=false;
+let ensureContextPromise=null;
+const SUPABASE_PROJECT_REF='zobsyvttmrocmtfbppfm';
+
 const qs=id=>document.getElementById(id), qsa=s=>document.querySelectorAll(s), clone=o=>JSON.parse(JSON.stringify(o)), money=n=>"$"+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}), uid=(p="id")=>p+"_"+Date.now()+"_"+Math.floor(Math.random()*1e5);
 const escapeHtml=s=>String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const slugify=s=>String(s||"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
@@ -64,6 +68,27 @@ function saveLocalExtras(){
   }
 }
 function loadLocalExtras(){try{state.jobExtras=JSON.parse(localStorage.getItem(localKey("jobExtras"))||"{}")}catch(e){state.jobExtras={}}}
+
+function clearStoredAuthSession(){
+  try{
+    const keys=[];
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(!key) continue;
+      if(key.includes('supabase.auth.token') || key.includes(SUPABASE_PROJECT_REF)) keys.push(key);
+    }
+    keys.forEach(key=>localStorage.removeItem(key));
+  }catch(e){}
+  try{
+    const keys=[];
+    for(let i=0;i<sessionStorage.length;i++){
+      const key=sessionStorage.key(i);
+      if(!key) continue;
+      if(key.includes('supabase.auth.token') || key.includes(SUPABASE_PROJECT_REF)) keys.push(key);
+    }
+    keys.forEach(key=>sessionStorage.removeItem(key));
+  }catch(e){}
+}
 
 function setLogoUI(logoData){
   const hasLogo = !!logoData;
@@ -147,6 +172,7 @@ async function signUp(){
   }
 }
 async function signIn(){
+  if(authActionInFlight) return;
   const email=(qs("loginEmail")?.value||"").trim();
   const password=qs("loginPassword")?.value||"";
   if(!email || !password){
@@ -155,34 +181,45 @@ async function signIn(){
   }
   setInlineStatus("authInlineStatus","");
   setButtonLoading("loginBtn", true, "Logging in...");
+  authActionInFlight = true;
+  document.body.classList.add("app-loading");
   try{
     const {error}=await supabase.auth.signInWithPassword({email,password});
     if(error) throw error;
-    await ensureContext();
+    await ensureContext(true);
   }catch(err){
     setInlineStatus("authInlineStatus", err?.message || "Login failed.", "error");
+    stopBoot();
   }finally{
+    authActionInFlight = false;
     setButtonLoading("loginBtn", false);
   }
 }
 async function signOut(){
-  const btn = qs('logoutBtn');
-  setButtonLoading('logoutBtn', true, 'Logging out...');
+  if(authActionInFlight) return;
+  authActionInFlight = true;
   const oldKey = screenStorageKey();
+  setButtonLoading('logoutBtn', true, 'Logging out...');
+  showLoginScreen();
+  document.body.classList.add('app-loading');
   try{
-    await supabase.auth.signOut({ scope: 'local' });
+    await supabase.auth.signOut();
   }catch(e){
     console.warn("signOut warning", e);
   }
   try{ localStorage.removeItem(oldKey); }catch(e){}
+  clearStoredAuthSession();
   resetAppState();
   showLoginScreen();
   stopBoot();
+  authActionInFlight = false;
   setButtonLoading('logoutBtn', false);
   const path = (window.location.pathname || '').toLowerCase();
   if(!path.endsWith('/index.html') && !path.endsWith('/')){
-    window.location.href = './index.html';
+    window.location.replace('./index.html');
+    return;
   }
+  try{ window.history.replaceState({}, '', './index.html'); }catch(e){}
 }
 
 async function createBusinessFromOnboarding(){
@@ -502,54 +539,69 @@ function restoreSavedScreen(){
   }
 }
 
-async function ensureContext(){
-  const { data, error } = await supabase.auth.getUser();
-  if(error) throw error;
-  const user = data?.user || null;
-  state.user = user;
-  if(!user){
-    resetAppState();
-    showLoginScreen();
-    return;
+async function ensureContext(force=false){
+  if(ensureContextPromise && !force) return ensureContextPromise;
+  ensureContextPromise = (async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if(error) throw error;
+    const user = data?.user || null;
+    state.user = user;
+    if(!user){
+      resetAppState();
+      showLoginScreen();
+      stopBoot();
+      return;
+    }
+
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if(businessError){
+      console.error('business load failed', businessError);
+      setInlineStatus('authInlineStatus', businessError.message || 'Could not load account.', 'error');
+      showOnly('authSection');
+      stopBoot();
+      return;
+    }
+
+    if(!business){
+      renderTemplatePreview();
+      showOnly('onboardingSection');
+      stopBoot();
+      return;
+    }
+
+    state.business = {
+      id: business.id,
+      name: business.name || '',
+      phone: business.phone || '',
+      slug: business.slug || '',
+      mode: business.mode || 'both',
+      agreementTitle: business.agreement_title || 'Service Agreement',
+      logoData: business.logo_data || ''
+    };
+
+    loadLocalExtras();
+    await Promise.all([
+      loadServicesFromSupabase(state.business.id),
+      loadJobsFromSupabase(state.business.id)
+    ]);
+    renderEverything();
+    renderCustomerServices();
+    setRepeatedTextById('contractorBizName', state.business.name || 'Your Jobs');
+    showOnly('appShell');
+    restoreSavedScreen();
+    stopBoot();
+  })();
+
+  try{
+    return await ensureContextPromise;
+  }finally{
+    ensureContextPromise = null;
   }
-
-  const { data: business, error: businessError } = await supabase
-    .from('businesses')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if(businessError){
-    console.error('business load failed', businessError);
-    setInlineStatus('authInlineStatus', businessError.message || 'Could not load account.', 'error');
-    showOnly('authSection');
-    return;
-  }
-
-  if(!business){
-    renderTemplatePreview();
-    showOnly('onboardingSection');
-    return;
-  }
-
-  state.business = {
-    id: business.id,
-    name: business.name || '',
-    phone: business.phone || '',
-    slug: business.slug || '',
-    mode: business.mode || 'both',
-    agreementTitle: business.agreement_title || 'Service Agreement',
-    logoData: business.logo_data || ''
-  };
-
-  loadLocalExtras();
-  await loadServicesFromSupabase(state.business.id);
-  await loadJobsFromSupabase(state.business.id);
-  renderEverything();
-  renderCustomerServices();
-  setRepeatedTextById('contractorBizName', state.business.name || 'Your Jobs');
-  showOnly('appShell');
-  restoreSavedScreen();
 }
 
 function createBlankService(){
@@ -855,9 +907,14 @@ async function init(){
       else showOnly("authSection");
       supabase.auth.onAuthStateChange(async(event, session)=>{
         if(event === 'SIGNED_OUT' || !session?.user){
+          clearStoredAuthSession();
           resetAppState();
           showLoginScreen();
           stopBoot();
+          authActionInFlight = false;
+          return;
+        }
+        if(authActionInFlight && event === 'SIGNED_IN'){
           return;
         }
         await ensureContext();
