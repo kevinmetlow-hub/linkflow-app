@@ -1165,3 +1165,25 @@ button.service-card{
   color:var(--muted);
   font-size:12px;
 }
+
+
+/* Auth status polish */
+#authInlineStatus,#signupInlineStatus{
+  margin:12px 0 0;
+}
+.auth-card .btn-row{
+  margin-top:14px;
+}
+
+@media (display-mode: standalone) {
+  body{
+    overscroll-behavior:none;
+  }
+  .app-shell,
+  .customer-shell{
+    padding-top:max(18px, env(safe-area-inset-top));
+  }
+  .bottom-nav{
+    bottom:max(14px, env(safe-area-inset-bottom));
+  }
+}
