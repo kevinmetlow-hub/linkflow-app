@@ -13,13 +13,7 @@
   <link rel="apple-touch-icon" href="icon-512.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="app-loading">
-  <div id="appBootScreen" class="app-boot-screen">
-    <div class="app-boot-card">
-      <div class="app-boot-logo">LinkFlow</div>
-      <div class="app-boot-spinner"></div>
-    </div>
-  </div>
+<body>
   <section id="authSection" class="center-shell">
     <div class="glass auth-card">
       <div class="eyebrow">LinkFlow</div>
@@ -34,7 +28,6 @@
         <input id="loginEmail" type="email" placeholder="you@example.com" />
         <label class="mt12">Password</label>
         <input id="loginPassword" type="password" placeholder="Password" />
-        <div id="authInlineStatus" class="inline-status hidden"></div>
         <div class="btn-row">
           <button id="loginBtn" class="primary">Log In</button>
         </div>
@@ -45,7 +38,6 @@
         <input id="signupEmail" type="email" placeholder="you@example.com" />
         <label class="mt12">Password</label>
         <input id="signupPassword" type="password" placeholder="Create password" />
-        <div id="signupInlineStatus" class="inline-status hidden"></div>
         <div class="btn-row">
           <button id="signupBtn" class="primary">Create Account</button>
         </div>
@@ -98,7 +90,16 @@
 
     <main class="app-main">
       <section id="screen-home" class="screen active">
-<div class="section-head">
+<div class="glass contractor-hero contractor-hero-pop">
+        <div class="contractor-hero-bg"></div>
+        <div class="contractor-hero-inner">
+          <div class="eyebrow">Dashboard</div>
+          <h1 id="contractorBizName" class="contractor-h1">Your Jobs</h1>
+          <p class="sub contractor-hero-sub">Manage incoming bookings and stay organized.</p>
+        </div>
+      </div>
+
+      <div class="section-head">
           <div><div class="section-title" style="margin:0">Orders</div></div>
         </div>
 
@@ -122,7 +123,7 @@
         </div>
 
         <div class="section-head">
-          <div><div class="eyebrow">Services</div></div>
+          <div><div class="eyebrow">Services</div><h2>Your services</h2></div>
           <button id="newServiceBtn" class="primary small-btn">New Service</button>
         </div>
         <div id="serviceList" class="stack"></div>
@@ -184,7 +185,9 @@
         </div>
 
         <div class="glass editor-card">
-          
+          <div class="eyebrow">Profile</div>
+          <h2>Business profile</h2>
+
           <div class="profile-top">
             <div id="logoPreviewWrap" class="profile-logo-card hidden"><img id="logoPreviewImg" class="logo-preview" alt="Logo preview" /></div>
             <div class="profile-top-actions">
@@ -206,17 +209,16 @@
 
           <div class="row">
             <div><label>Business name</label><input id="bizName" /></div>
-            <div class="hidden"><input id="bizLogo" type="file" accept="image/*" /></div>
+            <div><label>Company logo</label><input id="bizLogo" type="file" accept="image/*" /></div>
             <div><label>Phone</label><input id="bizPhone" /></div>
             <div><label>Link slug</label><input id="bizSlug" /></div>
             <div>
-              <label>Estimate Type</label>
-              <div class="toggle-group" id="quoteModeToggle">
-                <button type="button" class="toggle-pill active" data-quote-mode="both">Use Service Setting</button>
-                <button type="button" class="toggle-pill" data-quote-mode="quote">Instant Quote Only</button>
-                <button type="button" class="toggle-pill" data-quote-mode="estimate">Appointment Only</button>
-              </div>
-              <input id="quoteMode" type="hidden" value="both" />
+              <label>Global booking mode</label>
+              <select id="quoteMode">
+                <option value="both">Use each service setting</option>
+                <option value="quote">Force quotes only</option>
+                <option value="estimate">Force appointments only</option>
+              </select>
             </div>
             <div><label>Agreement title</label><input id="agreementTitle" /></div>
           </div>
