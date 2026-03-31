@@ -98,6 +98,7 @@ async function ensureContext(){
   if(!state.user){
     state.business={id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement"};
     state.services=[]; state.jobs=[]; state.jobExtras={};
+    state.homeStatusFilter="scheduled";
     showOnly("authSection");
     return;
   }
@@ -200,10 +201,9 @@ function renderTemplatePreview(){
 function renderSharedBits(){if(qs("headerBusinessName"))qs("headerBusinessName").textContent=state.business.name||"Contractor App"; const link=`${window.location.origin}/customer.html?slug=${state.business.slug||""}`; qs("bookingLinkNotice")&&(qs("bookingLinkNotice").textContent=link); qs("bookingLinkNoticeLinkTab")&&(qs("bookingLinkNoticeLinkTab").textContent=link); qs("bizName")&&(qs("bizName").value=state.business.name||""); qs("bizPhone")&&(qs("bizPhone").value=state.business.phone||""); qs("bizSlug")&&(qs("bizSlug").value=state.business.slug||""); qs("quoteMode")&&(qs("quoteMode").value=state.business.mode||"both"); qs("agreementTitle")&&(qs("agreementTitle").value=state.business.agreementTitle||"Service Agreement"); setLogoUI(state.business.logoData||"")}
 function renderMetrics(){qs("mPending")&&(qs("mPending").textContent=state.jobs.filter(j=>(j.status||"scheduled")==="scheduled").length); qs("mCompleted")&&(qs("mCompleted").textContent=state.jobs.filter(j=>j.status==="completed").length); qs("mCanceled")&&(qs("mCanceled").textContent=state.jobs.filter(j=>j.status==="canceled").length); qs("mQuoted")&&(qs("mQuoted").textContent=state.jobs.filter(j=>j.mode==="quote").length)}
 function renderJobs(){
-  const recent=qs("recentJobs"), all=qs("jobList"), empty='<div class="job-card"><div class="mini">No jobs yet.</div></div>';
-  const filter=qs("homeStatusFilter")?.value||state.homeStatusFilter||"scheduled";
-  state.homeStatusFilter=filter;
-  const filtered=filter==="all"?state.jobs:state.jobs.filter(j=>(j.status||"scheduled")===filter);
+  const recent=qs("recentJobs"), empty='<div class="job-card"><div class="mini">No jobs yet.</div></div>';
+  const filter=state.homeStatusFilter||"scheduled";
+  const filtered=state.jobs.filter(j=>(j.status||"scheduled")===filter);
 
   const cardHtml = j => `<div class="job-card job-open-hit" data-open-job="${j.id}">
     <div>
@@ -217,7 +217,6 @@ function renderJobs(){
   </div>`;
 
   if(recent) recent.innerHTML = filtered.length ? filtered.map(cardHtml).join("") : empty;
-  if(all) all.innerHTML = state.jobs.length ? state.jobs.map(cardHtml).join("") : empty;
 }
 function openJobDetails(id){const j=state.jobs.find(x=>x.id===id); if(!j)return; state.activeJobId=id; qs("jobDetailTitle").textContent=j.customer||"Order"; qs("jobDetailDate").textContent=formatDisplayDate(j.scheduleDate,j.scheduleTime); qs("jobDetailCustomer").textContent=j.customer||""; qs("jobDetailPhone").textContent=j.phone||""; qs("jobDetailAddress").textContent=j.address||""; qs("jobDetailService").textContent=j.serviceName||""; qs("jobDetailPrice").textContent=j.mode==="estimate"?"Appointment":money(j.price); qs("jobDetailStatus").textContent=statusLabel(j.status); qs("jobDetailAnswers").innerHTML=(j.answers||[]).length?j.answers.map(a=>`<div>${escapeHtml(a.question)}: ${escapeHtml(a.answer)}</div>`).join(""):"No saved answers."; openModal("jobDetailModal")}
 function renderServicesList(){const box=qs("serviceList"); if(!box)return; box.innerHTML=state.services.length?state.services.map(s=>`<div class="service-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><strong>${escapeHtml(s.name)}</strong><div class="mini">${effectiveModeForService(s)==="quote"?"Get Quote":"Book Appointment"} · Base ${money(s.base)}</div><div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div></div><button data-edit-service="${s.id}">Edit</button></div></div>`).join(""):'<div class="service-card"><div class="mini">No services yet.</div></div>'}
@@ -344,7 +343,14 @@ function bindContractorEvents(){
   qs("copyBookingLinkBtn")?.addEventListener("click",()=>navigator.clipboard.writeText(`${window.location.origin}/customer.html?slug=${state.business.slug}`));
   qs("copyBookingLinkBtn2")?.addEventListener("click",()=>navigator.clipboard.writeText(`${window.location.origin}/customer.html?slug=${state.business.slug}`));
   qs("openBookingPageBtn2")?.addEventListener("click",()=>window.open(`${window.location.origin}/customer.html?slug=${state.business.slug}`,"_blank"));
-  qs("homeStatusFilter")?.addEventListener("change",renderJobs); document.querySelectorAll("[data-close-modal]").forEach(el=>el.addEventListener("click",()=>closeModal(el.getAttribute("data-close-modal"))));
+  qsa("[data-status-filter]").forEach(btn=>btn.addEventListener("click",()=>{
+    qsa("[data-status-filter]").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    state.homeStatusFilter = btn.getAttribute("data-status-filter");
+    renderJobs();
+  }));
+  qs("triggerLogoUploadBtn")?.addEventListener("click",()=>qs("bizLogo")?.click());
+  document.querySelectorAll("[data-close-modal]").forEach(el=>el.addEventListener("click",()=>closeModal(el.getAttribute("data-close-modal"))));
   qs("newServiceBtn")?.addEventListener("click",()=>{const s={id:uid("svc"),name:"New Service",base:0,mode:"quote",questions:[]}; state.services.push(s); renderServicesList(); openServiceEditor(s.id)});
   qs("backToServicesBtn")?.addEventListener("click",()=>switchScreen("services"));
   qs("addQuestionBtn")?.addEventListener("click",()=>{
@@ -362,8 +368,8 @@ function bindContractorEvents(){
   document.addEventListener("change",e=>{if(e.target.matches('[data-opt-type]')){syncDraft(); commitDraft(); renderServicesList()} if(e.target.matches('.q-type-select'))updateQuestionType(e.target.getAttribute('data-q-type'),e.target.value)});
   document.addEventListener("click",e=>{const editId=e.target.getAttribute("data-edit-service"); if(editId)openServiceEditor(editId); const addOpt=e.target.getAttribute("data-add-option"); if(addOpt)addOption(addOpt); const delQ=e.target.getAttribute("data-delete-question"); if(delQ&&state.editingDraft){state.editingDraft.questions=state.editingDraft.questions.filter(q=>q.id!==delQ); commitDraft(); renderQuestionEditor(state.editingDraft); renderServicesList()} const delOpt=e.target.getAttribute("data-delete-option"); if(delOpt&&state.editingDraft){const [qid,oid]=delOpt.split("__"), q=state.editingDraft.questions.find(x=>x.id===qid); if(q){q.options=(q.options||[]).filter(o=>o.id!==oid); commitDraft(); renderQuestionEditor(state.editingDraft)}} const openId=e.target.getAttribute("data-open-job"); if(openId)openJobDetails(openId); const vid=e.target.getAttribute("data-view-agreement"); if(vid)viewAgreement(vid); const pid=e.target.getAttribute("data-print-agreement"); if(pid)printAgreement(pid)});
   qs("jobCallBtn")?.addEventListener("click",()=>openCall(state.jobs.find(j=>j.id===state.activeJobId))); qs("jobTextBtn")?.addEventListener("click",()=>openSms(state.jobs.find(j=>j.id===state.activeJobId),"general")); qs("jobConfirmTextBtn")?.addEventListener("click",()=>openSms(state.jobs.find(j=>j.id===state.activeJobId),"confirm")); qs("jobViewAgreementBtn")?.addEventListener("click",()=>state.activeJobId&&viewAgreement(state.activeJobId)); qs("jobPrintAgreementBtn")?.addEventListener("click",()=>state.activeJobId&&printAgreement(state.activeJobId));
-  qs("jobCompleteBtn")?.addEventListener("click",async()=>{const j=state.jobs.find(x=>x.id===state.activeJobId); if(!j)return; j.status="completed"; state.jobExtras[j.id]={...(state.jobExtras[j.id]||{}),status:"completed",agreementHtml:j.agreementHtml,answers:j.answers}; await upsertJobMeta(j.id,{status:"completed",agreementHtml:j.agreementHtml,answers:j.answers}); saveLocalExtras(); renderMetrics(); renderJobs(); openJobDetails(j.id)});
-  qs("jobCancelBtn")?.addEventListener("click",async()=>{const j=state.jobs.find(x=>x.id===state.activeJobId); if(!j)return; j.status="canceled"; state.jobExtras[j.id]={...(state.jobExtras[j.id]||{}),status:"canceled",agreementHtml:j.agreementHtml,answers:j.answers}; await upsertJobMeta(j.id,{status:"canceled",agreementHtml:j.agreementHtml,answers:j.answers}); saveLocalExtras(); renderMetrics(); renderJobs(); openJobDetails(j.id)});
+  qs("jobCompleteBtn")?.addEventListener("click",async()=>{const j=state.jobs.find(x=>x.id===state.activeJobId); if(!j)return; j.status="completed"; state.jobExtras[j.id]={...(state.jobExtras[j.id]||{}),status:"completed",agreementHtml:j.agreementHtml,answers:j.answers}; await upsertJobMeta(j.id,{status:"completed",agreementHtml:j.agreementHtml,answers:j.answers}); saveLocalExtras(); closeModal("jobDetailModal"); renderMetrics(); renderJobs();});
+  qs("jobCancelBtn")?.addEventListener("click",async()=>{const j=state.jobs.find(x=>x.id===state.activeJobId); if(!j)return; j.status="canceled"; state.jobExtras[j.id]={...(state.jobExtras[j.id]||{}),status:"canceled",agreementHtml:j.agreementHtml,answers:j.answers}; await upsertJobMeta(j.id,{status:"canceled",agreementHtml:j.agreementHtml,answers:j.answers}); saveLocalExtras(); closeModal("jobDetailModal"); renderMetrics(); renderJobs();});
 }
 function bindCustomerEvents(){qs("custService")?.addEventListener("change",renderCustomerQuestions); qs("continueCustomerBtn")?.addEventListener("click",()=>{const svc=state.services.find(s=>s.id===qs("custService").value); if(!svc)return; const r=collectAnswersAndPrice(svc); state.currentQuote=r.total; state.latestAnswers=r.answers; const mode=effectiveModeForService(svc); qs("resultTitle").textContent=mode==="estimate"?"Book Appointment":"Your Quote"; qs("quotePrice").textContent=mode==="estimate"?"Appointment":money(r.total); qs("quoteBreakdown").textContent=mode==="estimate"?"This service is booked by appointment. Choose a time to continue.":r.parts.join(" · "); qs("continueScheduleBtn").textContent=mode==="estimate"?"Book Appointment":"Accept & Schedule"; goStep("customerStep2")}); qs("continueScheduleBtn")?.addEventListener("click",()=>goStep("customerStep3")); qs("continueAgreementBtn")?.addEventListener("click",()=>{const svc=state.services.find(s=>s.id===qs("custService").value), mode=effectiveModeForService(svc); qs("agreementHeading").textContent=state.business.agreementTitle; qs("docBizName").textContent=state.business.name; qs("docCustName").textContent=qs("custName").value||"Customer"; qs("docService").textContent=svc?.name||""; qs("docPrice").textContent=mode==="estimate"?"Appointment Request":money(state.currentQuote); qs("docAddress").textContent=qs("custAddress").value||""; qs("docSchedule").textContent=formatDisplayDate(normalizeScheduleDate(qs("scheduleDate").value),qs("scheduleTime").value); goStep("customerStep4")}); qs("finishBookingBtn")?.addEventListener("click",submitPublicBooking); qs("restartCustomerBtn")?.addEventListener("click",()=>goStep("customerStep1")); qs("newTestBookingBtn")?.addEventListener("click",()=>window.location.reload()); qs("clearCustomerSigBtn")?.addEventListener("click",()=>clearSig("customerSig")); qs("saveWorkOrderBtn")?.addEventListener("click",saveWorkOrderCurrent); qs("saveWorkOrderBtnDone")?.addEventListener("click",saveWorkOrderCurrent); qsa("[data-step]").forEach(btn=>btn.addEventListener("click",()=>goStep(btn.dataset.step)))}
 
