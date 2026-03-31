@@ -325,7 +325,9 @@ function renderServicesList(){
     `;
   }).join("");
 
+  if (typeof bindServiceCardInteractions === "function") {
   bindServiceCardInteractions();
+};
 }
 
 function openServiceEditor(id){const s=state.services.find(x=>x.id===id); if(!s)return; state.editingServiceId=id; state.editingDraft=clone(s); qs("editorTitle").textContent=s.name; qs("editServiceName").value=s.name; qs("editServiceBase").value=s.base; qs("editServiceMode").value=s.mode;
