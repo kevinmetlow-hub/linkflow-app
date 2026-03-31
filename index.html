@@ -25,7 +25,6 @@
         <div class="btn-row">
           <button id="loginBtn" class="primary">Log In</button>
         </div>
-        <div id="authInlineStatus" class="inline-status hidden"></div>
       </div>
 
       <div id="signupPane" class="auth-pane hidden">
@@ -36,7 +35,6 @@
         <div class="btn-row">
           <button id="signupBtn" class="primary">Create Account</button>
         </div>
-        <div id="signupInlineStatus" class="inline-status hidden"></div>
       </div>
       <div class="helper mt12">Use one email per contractor account.</div>
     </div>
@@ -86,11 +84,11 @@
 
     <main class="app-main">
       <section id="screen-home" class="screen active">
-        <div class="section-head compact-screen-head">
+        <div class="tab-hero home-tab-hero">
           <div>
             <div class="eyebrow">Dashboard</div>
-            <h2 class="page-title">Orders</h2>
-            <div class="helper">Manage incoming bookings and stay organized.</div>
+            <h2 id="contractorBizName">Your Jobs</h2>
+            <p class="sub">Manage incoming bookings and stay organized.</p>
           </div>
         </div>
 
@@ -104,11 +102,11 @@
       </section>
 
       <section id="screen-services" class="screen">
-        <div class="section-head compact-screen-head">
+        <div class="tab-hero services-tab-hero section-head">
           <div>
             <div class="eyebrow">Services</div>
-            <h2 class="page-title">Your Services</h2>
-            <div class="helper">Set up pricing, questions, and how customers book.</div>
+            <h2>Your Services</h2>
+            <p class="sub">Set up pricing, questions, and how customers book.</p>
           </div>
           <button id="newServiceBtn" class="primary small-btn">New Service</button>
         </div>
@@ -116,11 +114,11 @@
       </section>
 
       <section id="screen-editor" class="screen">
-        <div class="section-head compact-screen-head">
+        <div class="tab-hero editor-tab-hero section-head">
           <div>
             <div class="eyebrow">Service Builder</div>
-            <h2 id="editorTitle" class="page-title">Edit service</h2>
-            <div class="helper">Make changes to pricing, questions, and booking behavior.</div>
+            <h2 id="editorTitle">Edit Service</h2>
+            <p class="sub">Update pricing, customer questions, and booking behavior.</p>
           </div>
           <button id="backToServicesBtn" class="small-btn">Back</button>
         </div>
@@ -156,14 +154,15 @@
         </div>
       </section>
 <section id="screen-settings" class="screen">
-        <div class="glass editor-card">
-          <div class="section-head compact-screen-head inside-card-head">
-            <div>
-              <div class="eyebrow">Profile</div>
-              <h2 class="page-title">Business Profile</h2>
-              <div class="helper">Manage your branding, public form, and settings.</div>
-            </div>
+        <div class="tab-hero profile-tab-hero">
+          <div>
+            <div class="eyebrow">Profile</div>
+            <h2>Business Profile</h2>
+            <p class="sub">Manage your branding, public form, and settings.</p>
           </div>
+        </div>
+
+        <div class="glass editor-card">
 
           <div class="profile-top">
             <div id="logoPreviewWrap" class="profile-logo-card hidden"><img id="logoPreviewImg" class="logo-preview" alt="Logo preview" /></div>
@@ -184,20 +183,18 @@
             <div class="metric-card glass"><div class="metric-k">Quoted</div><div class="metric-v" id="mQuoted">0</div></div>
           </div>
 
-          <input id="bizLogo" type="file" accept="image/*" class="hidden" />
-
           <div class="row">
             <div><label>Business name</label><input id="bizName" /></div>
+            <div><label>Company logo</label><input id="bizLogo" type="file" accept="image/*" /></div>
             <div><label>Phone</label><input id="bizPhone" /></div>
             <div><label>Link slug</label><input id="bizSlug" /></div>
             <div>
-              <label>Estimate type</label>
-              <div class="toggle-group" id="quoteModeToggle">
-                <button type="button" class="toggle-pill active" data-quote-mode="both">Use Service Setting</button>
-                <button type="button" class="toggle-pill" data-quote-mode="quote">Quotes Only</button>
-                <button type="button" class="toggle-pill" data-quote-mode="estimate">Appointments Only</button>
-              </div>
-              <input id="quoteMode" type="hidden" value="both" />
+              <label>Global booking mode</label>
+              <select id="quoteMode">
+                <option value="both">Use each service setting</option>
+                <option value="quote">Force quotes only</option>
+                <option value="estimate">Force appointments only</option>
+              </select>
             </div>
             <div><label>Agreement title</label><input id="agreementTitle" /></div>
           </div>
@@ -215,8 +212,12 @@
   <div id="jobDetailModal" class="modal hidden">
     <div class="modal-backdrop" data-close-modal="jobDetailModal"></div>
     <div class="modal-panel glass">
-      <div class="section-head compact-screen-head modal-head">
-        <div><div class="eyebrow">Job Details</div><h2 id="jobDetailTitle">Order</h2></div>
+      <div class="tab-hero modal-tab-hero section-head">
+        <div>
+          <div class="eyebrow">Job Details</div>
+          <h2 id="jobDetailTitle">Order</h2>
+          <p class="sub">Review customer details, booking info, and next actions.</p>
+        </div>
         <button data-close-modal="jobDetailModal" class="small-btn">Close</button>
       </div>
 
