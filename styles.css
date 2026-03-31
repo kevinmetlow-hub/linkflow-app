@@ -1034,39 +1034,6 @@ details[open] .expand-line-b{
 .profile-hero .eyebrow{color:#9ce7ff}
 
 
-/* Performance placeholders */
-.skeleton-card{
-  position:relative;
-  overflow:hidden;
-}
-.skeleton-card::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  transform:translateX(-100%);
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
-  animation:skeletonSweep 1.2s infinite;
-}
-.skeleton-line{
-  height:14px;
-  border-radius:999px;
-  background:rgba(255,255,255,.08);
-  margin:10px 0;
-}
-.skeleton-line.w55{ width:55%; }
-.skeleton-line.w60{ width:60%; }
-.skeleton-line.w80{ width:80%; }
-.skeleton-line.w90{ width:90%; }
-
-@keyframes skeletonSweep{
-  to{ transform:translateX(100%); }
-}
-
-/* Faster-feeling auth transition */
-#appBootScreen{
-  transition:opacity .18s ease;
-}
-body:not(.app-loading) #appBootScreen{
-  opacity:0;
-  pointer-events:none;
+#authInlineStatus,#signupInlineStatus{
+  margin:12px 0 0;
 }
