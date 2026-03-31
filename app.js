@@ -357,6 +357,7 @@ function bindContractorEvents(){
   });
   qsa(".nav-btn").forEach(btn=>btn.addEventListener("click",()=>switchScreen(btn.dataset.screen)));
   qs("copyBookingLinkBtn")?.addEventListener("click",()=>navigator.clipboard.writeText(`${window.location.origin}/customer.html?slug=${state.business.slug}`));
+  qs("openPublicFormBtn")?.addEventListener("click",()=>window.open(`${window.location.origin}/customer.html?slug=${state.business.slug}`,"_blank"));
   qsa("[data-status-filter]").forEach(btn=>btn.addEventListener("click",()=>{
     qsa("[data-status-filter]").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
