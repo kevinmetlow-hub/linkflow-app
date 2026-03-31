@@ -16,12 +16,49 @@ let state={user:null,business:{id:null,name:"",phone:"",slug:"",mode:"both",agre
 const qs=id=>document.getElementById(id), qsa=s=>document.querySelectorAll(s), clone=o=>JSON.parse(JSON.stringify(o)), money=n=>"$"+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}), uid=(p="id")=>p+"_"+Date.now()+"_"+Math.floor(Math.random()*1e5);
 const escapeHtml=s=>String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const slugify=s=>String(s||"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+
+async function requireUser(){
+  const { data } = await supabase.auth.getUser();
+  if(!data.user){
+    showOnly("authSection");
+    throw new Error("Not authenticated");
+  }
+  return data.user;
+}
 const statusLabel=s=>s==="completed"?"Completed":s==="canceled"?"Canceled":"Pending";
 const localKey=s=>`linkflow_${state.user?.id||"guest"}_${s}`;
 
 function showOnly(id){["authSection","onboardingSection","appShell"].forEach(x=>qs(x)?.classList.add("hidden")); qs(id)?.classList.remove("hidden")}
 function saveLocalExtras(){localStorage.setItem(localKey("jobExtras"),JSON.stringify(state.jobExtras||{}))}
 function loadLocalExtras(){try{state.jobExtras=JSON.parse(localStorage.getItem(localKey("jobExtras"))||"{}")}catch(e){state.jobExtras={}}}
+
+async function loadJobMetaFromSupabase(businessId){
+  try{
+    const { data, error } = await supabase.from("job_meta").select("*").eq("business_id", businessId);
+    if(error) return {};
+    const byId = {};
+    (data || []).forEach(row => { byId[row.job_id] = row; });
+    return byId;
+  }catch(e){
+    return {};
+  }
+}
+
+async function upsertJobMeta(jobId, payload){
+  try{
+    const { error } = await supabase.from("job_meta").upsert({
+      job_id: jobId,
+      business_id: state.business.id,
+      status: payload.status || "scheduled",
+      answers: payload.answers || [],
+      agreement_html: payload.agreementHtml || "",
+      signature_data: payload.signatureData || ""
+    });
+    return !error;
+  }catch(e){
+    return false;
+  }
+}
 function formatDisplayDate(dateStr,timeWindow){if(!dateStr)return timeWindow||""; const d=new Date(dateStr+"T12:00:00"); const fd=isNaN(d)?dateStr:d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); return `${fd}${timeWindow?" · "+timeWindow:""}`}
 function normalizeScheduleDate(label){if(!label)return""; const t=new Date(), c=new Date(t), l=String(label).toLowerCase(); if(l==="tomorrow")c.setDate(c.getDate()+1); else if(l==="this friday"){const day=c.getDay(); c.setDate(c.getDate()+((5-day+7)%7||7))} else if(l==="this saturday"){const day=c.getDay(); c.setDate(c.getDate()+((6-day+7)%7||7))} else return label; return c.toISOString().slice(0,10)}
 function effectiveModeForService(s){if(state.business.mode==="quote")return"quote"; if(state.business.mode==="estimate")return"estimate"; return s.mode}
@@ -39,32 +76,48 @@ async function signOut(){await supabase.auth.signOut()}
 
 async function ensureContext(){
   const {data}=await supabase.auth.getUser(); state.user=data.user||null;
-  if(!state.user){showOnly("authSection");return}
+  if(!state.user){
+    state.business={id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement"};
+    state.services=[]; state.jobs=[]; state.jobExtras={};
+    showOnly("authSection");
+    return;
+  }
   loadLocalExtras();
   const {data:business}=await supabase.from("businesses").select("*").eq("user_id",state.user.id).maybeSingle();
   if(!business){showOnly("onboardingSection"); return}
-  state.business={id:business.id,name:business.name||"",phone:business.phone||"",slug:business.slug||"",mode:"both",agreementTitle:"Service Agreement"};
-  await loadServicesFromSupabase(business.id); await loadJobsFromSupabase(business.id); renderEverything(); showOnly("appShell");
+  state.business={id:business.id,name:business.name||"",phone:business.phone||"",slug:business.slug||"",mode:business.mode||"both",agreementTitle:business.agreement_title||"Service Agreement"};
+  await loadServicesFromSupabase(business.id); await loadJobsFromSupabase(business.id); renderEverything(); showOnly("appShell"); switchScreen("home");
 }
 
 async function createBusinessFromOnboarding(){
+  await requireUser();
   const tpl=PRESETS[state.selectedTemplate||"pressure_washing"], desired=qs("onboardBusinessName").value.trim()||tpl.businessName;
   let slugBase=slugify(desired)||"my-business", finalSlug=slugBase, i=1;
   while(true){const {data:ex}=await supabase.from("businesses").select("id").eq("slug",finalSlug).maybeSingle(); if(!ex)break; finalSlug=`${slugBase}-${i++}`}
-  const {data:b,error}=await supabase.from("businesses").insert({user_id:state.user.id,name:desired,phone:"",slug:finalSlug}).select().single();
+  const {data:b,error}=await supabase.from("businesses").insert({user_id:state.user.id,name:desired,phone:"",slug:finalSlug,mode:"both",agreement_title:"Service Agreement"}).select().single();
   if(error)return alert(error.message);
-  state.business={id:b.id,name:b.name,phone:b.phone||"",slug:b.slug,mode:"both",agreementTitle:"Service Agreement"};
+  state.business={id:b.id,name:b.name,phone:b.phone||"",slug:b.slug,mode:b.mode||"both",agreementTitle:b.agreement_title||"Service Agreement"};
   state.services=tpl.services.map(s=>({id:uid("svc"),name:s.name,base:s.base,mode:s.mode,questions:s.questions.map(q=>({id:uid("q"),label:q.label,type:q.type,options:(q.options||[]).map(o=>({id:uid("opt"),label:o[0],modifierType:"fixed",modifierValue:o[1]}))}))}));
   state.jobs=[]; await syncServicesToSupabase(); renderEverything(); showOnly("appShell");
 }
 async function loadServicesFromSupabase(businessId){
   const {data:services}=await supabase.from("services").select("*").eq("business_id",businessId);
-  const {data:questions}=await supabase.from("questions").select("*");
-  const {data:options}=await supabase.from("options").select("*");
+  const serviceIds = (services || []).map(s => s.id);
+  let questions = [], options = [];
+  if(serviceIds.length){
+    const qRes = await supabase.from("questions").select("*").in("service_id", serviceIds);
+    questions = qRes.data || [];
+    const questionIds = questions.map(q => q.id);
+    if(questionIds.length){
+      const oRes = await supabase.from("options").select("*").in("question_id", questionIds);
+      options = oRes.data || [];
+    }
+  }
   const qBy={}, oBy={}; (questions||[]).forEach(q=>(qBy[q.service_id]??=[]).push(q)); (options||[]).forEach(o=>(oBy[o.question_id]??=[]).push(o));
   state.services=(services||[]).map(s=>({id:s.id,name:s.name,base:Number(s.base_price||0),mode:s.mode||"quote",questions:(qBy[s.id]||[]).map(q=>({id:q.id,label:q.label,type:q.type,options:(oBy[q.id]||[]).map(o=>({id:o.id,label:o.label,modifierType:"fixed",modifierValue:Number(o.price||0)}))}))}));
 }
 async function syncServicesToSupabase(){
+  await requireUser();
   if(!state.business.id)return;
   const {data:es}=await supabase.from("services").select("id").eq("business_id",state.business.id);
   const sids=(es||[]).map(x=>x.id);
@@ -74,7 +127,54 @@ async function syncServicesToSupabase(){
 }
 async function loadJobsFromSupabase(businessId){
   const {data}=await supabase.from("jobs").select("*").eq("business_id",businessId).order("created_at",{ascending:false});
-  state.jobs=(data||[]).map(j=>{const ex=state.jobExtras[j.id]||{}; return {id:j.id,customer:j.customer_name||"",phone:j.phone||"",address:j.address||"",serviceName:j.service_name||"",price:j.price,mode:j.mode||"quote",scheduleDate:j.schedule_date||"",scheduleTime:j.schedule_time||"",status:ex.status||"scheduled",answers:ex.answers||[],agreementHtml:ex.agreementHtml||buildAgreementHtml({agreementTitle:state.business.agreementTitle,business:state.business.name,customer:j.customer_name,service:j.service_name,priceType:j.mode==="estimate"?"Appointment Request":money(j.price),address:j.address,schedule:formatDisplayDate(j.schedule_date,j.schedule_time),signatureData:""})}})
+  const metaById = await loadJobMetaFromSupabase(businessId);
+  state.jobs=(data||[]).map(j=>{
+    const ex=metaById[j.id] || state.jobExtras[j.id] || {};
+    return {
+      id:j.id,
+      customer:j.customer_name||"",
+      phone:j.phone||"",
+      address:j.address||"",
+      serviceName:j.service_name||"",
+      price:j.price,
+      mode:j.mode||"quote",
+      scheduleDate:j.schedule_date||"",
+      scheduleTime:j.schedule_time||"",
+      status:ex.status||"scheduled",
+      answers:ex.answers||[],
+      agreementHtml:ex.agreement_html||ex.agreementHtml||buildAgreementHtml({
+        agreementTitle:state.business.agreementTitle,
+        business:state.business.name,
+        customer:j.customer_name,
+        service:j.service_name,
+        priceType:j.mode==="estimate"?"Appointment Request":money(j.price),
+        address:j.address,
+        schedule:formatDisplayDate(j.schedule_date,j.schedule_time),
+        signatureData:ex.signature_data || ""
+      })
+    }
+  });
+}
+
+
+function renderTemplatePreview(){
+  const body = qs("templatePreviewBody");
+  const title = qs("templatePreviewTitle");
+  if(!body || !title) return;
+  const tpl = PRESETS[state.selectedTemplate || "pressure_washing"];
+  const niceTitle = (state.selectedTemplate || "pressure_washing").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  title.textContent = niceTitle;
+  if(!tpl || !tpl.services?.length){
+    body.innerHTML = '<div class="template-preview-item"><strong>Start From Scratch</strong><div class="mini">No starter services. Build your own setup.</div></div>';
+    return;
+  }
+  body.innerHTML = tpl.services.map(service => {
+    const qHtml = (service.questions || []).map(q => {
+      const opts = (q.options || []).map(opt => Array.isArray(opt) ? opt[0] : opt.label).join(", ");
+      return `<div class="mini">• ${q.label}${opts ? ` — ${opts}` : ""}</div>`;
+    }).join("");
+    return `<div class="template-preview-item"><strong>${service.name}</strong><div class="mini">${service.mode === "quote" ? "Get Quote" : "Book Appointment"}${service.base ? ` · Base ${money(service.base)}` : ""}</div>${qHtml}</div>`;
+  }).join("");
 }
 
 function renderSharedBits(){if(qs("headerBusinessName"))qs("headerBusinessName").textContent=state.business.name||"Contractor App"; const link=`${window.location.origin}/customer.html?slug=${state.business.slug||""}`; qs("bookingLinkNotice")&&(qs("bookingLinkNotice").textContent=link); qs("bookingLinkNoticeLinkTab")&&(qs("bookingLinkNoticeLinkTab").textContent=link); qs("bizName")&&(qs("bizName").value=state.business.name||""); qs("bizPhone")&&(qs("bizPhone").value=state.business.phone||""); qs("bizSlug")&&(qs("bizSlug").value=state.business.slug||""); qs("quoteMode")&&(qs("quoteMode").value=state.business.mode||"both"); qs("agreementTitle")&&(qs("agreementTitle").value=state.business.agreementTitle||"Service Agreement")}
@@ -93,7 +193,7 @@ function addOption(qid){if(!state.editingDraft)return; syncDraft(); const q=stat
 function updateQuestionType(qid,t){if(!state.editingDraft)return; syncDraft(); const q=state.editingDraft.questions.find(x=>x.id===qid); if(!q)return; q.type=t; if(t==="yesno")q.options=[{id:uid("opt"),label:"Yes",modifierType:"fixed",modifierValue:0},{id:uid("opt"),label:"No",modifierType:"fixed",modifierValue:0}]; else if(t==="text"||t==="number")q.options=[]; else if(t==="multiple"&&!q.options.length)q.options=[{id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0}]; commitDraft(); renderQuestionEditor(state.editingDraft)}
 async function saveServiceEditor(){if(!state.editingDraft)return; syncDraft(); commitDraft(); await syncServicesToSupabase(); renderServicesList(); renderCustomerServices(); alert("Service saved.")}
 async function deleteService(){if(!state.editingServiceId)return; if(!confirm("Delete this service?"))return; state.services=state.services.filter(s=>s.id!==state.editingServiceId); state.editingServiceId=null; state.editingDraft=null; await syncServicesToSupabase(); renderServicesList(); renderCustomerServices(); switchScreen("services")}
-async function saveSettings(){state.business.name=qs("bizName").value.trim()||state.business.name; state.business.phone=qs("bizPhone").value.trim(); state.business.slug=slugify(qs("bizSlug").value.trim())||state.business.slug; state.business.mode=qs("quoteMode").value; state.business.agreementTitle=qs("agreementTitle").value.trim()||"Service Agreement"; await supabase.from("businesses").update({name:state.business.name,phone:state.business.phone,slug:state.business.slug}).eq("id",state.business.id); renderSharedBits(); alert("Settings saved.")}
+async function saveSettings(){await requireUser(); state.business.name=qs("bizName").value.trim()||state.business.name; state.business.phone=qs("bizPhone").value.trim(); state.business.slug=slugify(qs("bizSlug").value.trim())||state.business.slug; state.business.mode=qs("quoteMode").value; state.business.agreementTitle=qs("agreementTitle").value.trim()||"Service Agreement"; await supabase.from("businesses").update({name:state.business.name,phone:state.business.phone,slug:state.business.slug,mode:state.business.mode,agreement_title:state.business.agreementTitle}).eq("id",state.business.id); renderSharedBits(); alert("Settings saved.")}
 function switchScreen(name){qsa(".screen").forEach(s=>s.classList.remove("active")); qs("screen-"+name)?.classList.add("active"); qsa(".nav-btn").forEach(b=>b.classList.remove("active")); document.querySelector(`.nav-btn[data-screen="${name}"]`)?.classList.add("active")}
 function renderEverything(){renderSharedBits(); renderMetrics(); renderJobs(); renderServicesList()}
 function applyModifier(total,t,v){v=Number(v||0); if(t==="fixed")return total+v; if(t==="percent")return total+(total*(v/100)); if(t==="multiplier")return total*v; return total}
@@ -103,8 +203,8 @@ function renderCustomerQuestions(){const svc=state.services.find(s=>s.id===(qs("
 function collectAnswersAndPrice(svc){let total=Number(svc.base||0); const parts=[`${svc.name}: ${money(total)}`], answers=[]; svc.questions.forEach((q,i)=>{const el=qs("cq_"+i); if(!el)return; if(q.type==="text"||q.type==="number"){answers.push({question:q.label,answer:el.value||""}); parts.push(`${q.label}: ${el.value||"-"}`); return} const opt=(q.options||[])[parseInt(el.value||"0",10)]||null; if(opt){total=applyModifier(total,opt.modifierType,opt.modifierValue); answers.push({question:q.label,answer:opt.label}); parts.push(`${q.label}: ${opt.label} (${modifierText(opt)})`)}}); return {total,parts,answers}}
 function goStep(id){qsa(".step").forEach(s=>s.classList.remove("active")); qs(id)?.classList.add("active")}
 function saveWorkOrderCurrent(){openAgreementHtml(buildAgreementHtml({agreementTitle:qs("agreementHeading")?.textContent||"Service Agreement",business:qs("docBizName")?.textContent||"",customer:qs("docCustName")?.textContent||"",service:qs("docService")?.textContent||"",priceType:qs("docPrice")?.textContent||"",address:qs("docAddress")?.textContent||"",schedule:qs("docSchedule")?.textContent||"",signatureData:qs("customerSig")?.toDataURL?qs("customerSig").toDataURL("image/png"):""}),true)}
-async function publicLoadBySlug(){const params=new URLSearchParams(window.location.search); const slug=params.get("slug"); if(!slug){qs("customerBizName").textContent="Missing business link"; return} const {data:b}=await supabase.from("businesses").select("*").eq("slug",slug).maybeSingle(); if(!b){qs("customerBizName").textContent="Business not found"; return} state.business={id:b.id,name:b.name||"",phone:b.phone||"",slug:b.slug,mode:"both",agreementTitle:"Service Agreement"}; await loadServicesFromSupabase(b.id); qs("customerBizName").textContent=state.business.name; qs("docBizName").textContent=state.business.name; renderCustomerServices()}
-async function submitPublicBooking(){const svc=state.services.find(s=>s.id===qs("custService").value); if(!svc)return; const mode=effectiveModeForService(svc), scheduleDate=normalizeScheduleDate(qs("scheduleDate").value), scheduleTime=qs("scheduleTime").value; const agreementHtml=buildAgreementHtml({agreementTitle:state.business.agreementTitle,business:state.business.name,customer:qs("custName").value||"Customer",service:svc.name,priceType:mode==="estimate"?"Appointment Request":money(state.currentQuote),address:qs("custAddress").value||"",schedule:formatDisplayDate(scheduleDate,scheduleTime),signatureData:qs("customerSig")?.toDataURL?qs("customerSig").toDataURL("image/png"):""}); const {data:ins,error}=await supabase.from("jobs").insert({business_id:state.business.id,customer_name:qs("custName").value||"Customer",phone:qs("custPhone").value||"",address:qs("custAddress").value||"",service_name:svc.name,price:mode==="estimate"?null:state.currentQuote,mode,schedule_date:scheduleDate,schedule_time:scheduleTime}).select().single(); if(error)return alert(error.message); state.jobExtras[ins.id]={status:"scheduled",agreementHtml,answers:state.latestAnswers||[]}; saveLocalExtras(); qs("confirmText").textContent=`${svc.name} · ${mode==="estimate"?"Appointment":money(state.currentQuote)} · ${formatDisplayDate(scheduleDate,scheduleTime)}`; goStep("customerStep5")}
+async function publicLoadBySlug(){const params=new URLSearchParams(window.location.search); const slug=params.get("slug"); if(!slug){qs("customerBizName").textContent="Missing business link"; return} const {data:b}=await supabase.from("businesses").select("*").eq("slug",slug).maybeSingle(); if(!b){qs("customerBizName").textContent="Business not found"; return} state.business={id:b.id,name:b.name||"",phone:b.phone||"",slug:b.slug,mode:b.mode||"both",agreementTitle:b.agreement_title||"Service Agreement"}; await loadServicesFromSupabase(b.id); qs("customerBizName").textContent=state.business.name; qs("docBizName").textContent=state.business.name; renderCustomerServices()}
+async function submitPublicBooking(){const svc=state.services.find(s=>s.id===qs("custService").value); if(!svc)return; const mode=effectiveModeForService(svc), scheduleDate=normalizeScheduleDate(qs("scheduleDate").value), scheduleTime=qs("scheduleTime").value; const agreementHtml=buildAgreementHtml({agreementTitle:state.business.agreementTitle,business:state.business.name,customer:qs("custName").value||"Customer",service:svc.name,priceType:mode==="estimate"?"Appointment Request":money(state.currentQuote),address:qs("custAddress").value||"",schedule:formatDisplayDate(scheduleDate,scheduleTime),signatureData:qs("customerSig")?.toDataURL?qs("customerSig").toDataURL("image/png"):""}); const signatureData = qs("customerSig")?.toDataURL?qs("customerSig").toDataURL("image/png"):""; const {data:ins,error}=await supabase.from("jobs").insert({business_id:state.business.id,customer_name:qs("custName").value||"Customer",phone:qs("custPhone").value||"",address:qs("custAddress").value||"",service_name:svc.name,price:mode==="estimate"?null:state.currentQuote,mode,schedule_date:scheduleDate,schedule_time:scheduleTime}).select().single(); if(error)return alert(error.message); await upsertJobMeta(ins.id,{status:"scheduled",agreementHtml,answers:state.latestAnswers||[],signatureData}); state.jobExtras[ins.id]={status:"scheduled",agreementHtml,answers:state.latestAnswers||[]}; saveLocalExtras(); qs("confirmText").textContent=`${svc.name} · ${mode==="estimate"?"Appointment":money(state.currentQuote)} · ${formatDisplayDate(scheduleDate,scheduleTime)}`; goStep("customerStep5")}
 function initSignature(id){const c=qs(id); if(!c)return; const x=c.getContext("2d"); x.lineWidth=3.5; x.lineCap="round"; x.lineJoin="round"; x.fillStyle="#ffffff"; x.fillRect(0,0,c.width,c.height); const pos=e=>{const r=c.getBoundingClientRect(), p=e.touches?e.touches[0]:e; return {x:(p.clientX-r.left)*(c.width/r.width), y:(p.clientY-r.top)*(c.height/r.height)}}; let d=false; const start=e=>{d=true; const p=pos(e); x.beginPath(); x.moveTo(p.x,p.y); e.preventDefault()}, move=e=>{if(!d)return; const p=pos(e); x.lineTo(p.x,p.y); x.stroke(); e.preventDefault()}, end=()=>d=false; c.addEventListener("pointerdown",start); c.addEventListener("pointermove",move); window.addEventListener("pointerup",end); c.addEventListener("touchstart",start,{passive:false}); c.addEventListener("touchmove",move,{passive:false}); window.addEventListener("touchend",end)}
 function clearSig(id){const c=qs(id); if(!c)return; const x=c.getContext("2d"); x.clearRect(0,0,c.width,c.height); x.fillStyle="#ffffff"; x.fillRect(0,0,c.width,c.height)}
 
@@ -124,8 +224,8 @@ function bindContractorEvents(){
   document.addEventListener("change",e=>{if(e.target.matches('[data-opt-type]')){syncDraft(); commitDraft(); renderServicesList()} if(e.target.matches('.q-type-select'))updateQuestionType(e.target.getAttribute('data-q-type'),e.target.value)});
   document.addEventListener("click",e=>{const editId=e.target.getAttribute("data-edit-service"); if(editId)openServiceEditor(editId); const addOpt=e.target.getAttribute("data-add-option"); if(addOpt)addOption(addOpt); const delQ=e.target.getAttribute("data-delete-question"); if(delQ&&state.editingDraft){state.editingDraft.questions=state.editingDraft.questions.filter(q=>q.id!==delQ); commitDraft(); renderQuestionEditor(state.editingDraft); renderServicesList()} const delOpt=e.target.getAttribute("data-delete-option"); if(delOpt&&state.editingDraft){const [qid,oid]=delOpt.split("__"), q=state.editingDraft.questions.find(x=>x.id===qid); if(q){q.options=(q.options||[]).filter(o=>o.id!==oid); commitDraft(); renderQuestionEditor(state.editingDraft)}} const openId=e.target.getAttribute("data-open-job"); if(openId)openJobDetails(openId); const vid=e.target.getAttribute("data-view-agreement"); if(vid)viewAgreement(vid); const pid=e.target.getAttribute("data-print-agreement"); if(pid)printAgreement(pid)});
   qs("jobCallBtn")?.addEventListener("click",()=>openCall(state.jobs.find(j=>j.id===state.activeJobId))); qs("jobTextBtn")?.addEventListener("click",()=>openSms(state.jobs.find(j=>j.id===state.activeJobId),"general")); qs("jobConfirmTextBtn")?.addEventListener("click",()=>openSms(state.jobs.find(j=>j.id===state.activeJobId),"confirm")); qs("jobViewAgreementBtn")?.addEventListener("click",()=>state.activeJobId&&viewAgreement(state.activeJobId)); qs("jobPrintAgreementBtn")?.addEventListener("click",()=>state.activeJobId&&printAgreement(state.activeJobId));
-  qs("jobCompleteBtn")?.addEventListener("click",()=>{const j=state.jobs.find(x=>x.id===state.activeJobId); if(!j)return; j.status="completed"; state.jobExtras[j.id]={...(state.jobExtras[j.id]||{}),status:"completed",agreementHtml:j.agreementHtml,answers:j.answers}; saveLocalExtras(); renderMetrics(); renderJobs(); openJobDetails(j.id)});
-  qs("jobCancelBtn")?.addEventListener("click",()=>{const j=state.jobs.find(x=>x.id===state.activeJobId); if(!j)return; j.status="canceled"; state.jobExtras[j.id]={...(state.jobExtras[j.id]||{}),status:"canceled",agreementHtml:j.agreementHtml,answers:j.answers}; saveLocalExtras(); renderMetrics(); renderJobs(); openJobDetails(j.id)});
+  qs("jobCompleteBtn")?.addEventListener("click",async()=>{const j=state.jobs.find(x=>x.id===state.activeJobId); if(!j)return; j.status="completed"; state.jobExtras[j.id]={...(state.jobExtras[j.id]||{}),status:"completed",agreementHtml:j.agreementHtml,answers:j.answers}; await upsertJobMeta(j.id,{status:"completed",agreementHtml:j.agreementHtml,answers:j.answers}); saveLocalExtras(); renderMetrics(); renderJobs(); openJobDetails(j.id)});
+  qs("jobCancelBtn")?.addEventListener("click",async()=>{const j=state.jobs.find(x=>x.id===state.activeJobId); if(!j)return; j.status="canceled"; state.jobExtras[j.id]={...(state.jobExtras[j.id]||{}),status:"canceled",agreementHtml:j.agreementHtml,answers:j.answers}; await upsertJobMeta(j.id,{status:"canceled",agreementHtml:j.agreementHtml,answers:j.answers}); saveLocalExtras(); renderMetrics(); renderJobs(); openJobDetails(j.id)});
 }
 function bindCustomerEvents(){qs("custService")?.addEventListener("change",renderCustomerQuestions); qs("continueCustomerBtn")?.addEventListener("click",()=>{const svc=state.services.find(s=>s.id===qs("custService").value); if(!svc)return; const r=collectAnswersAndPrice(svc); state.currentQuote=r.total; state.latestAnswers=r.answers; const mode=effectiveModeForService(svc); qs("resultTitle").textContent=mode==="estimate"?"Book Appointment":"Your Quote"; qs("quotePrice").textContent=mode==="estimate"?"Appointment":money(r.total); qs("quoteBreakdown").textContent=mode==="estimate"?"This service is booked by appointment. Choose a time to continue.":r.parts.join(" · "); qs("continueScheduleBtn").textContent=mode==="estimate"?"Book Appointment":"Accept & Schedule"; goStep("customerStep2")}); qs("continueScheduleBtn")?.addEventListener("click",()=>goStep("customerStep3")); qs("continueAgreementBtn")?.addEventListener("click",()=>{const svc=state.services.find(s=>s.id===qs("custService").value), mode=effectiveModeForService(svc); qs("agreementHeading").textContent=state.business.agreementTitle; qs("docBizName").textContent=state.business.name; qs("docCustName").textContent=qs("custName").value||"Customer"; qs("docService").textContent=svc?.name||""; qs("docPrice").textContent=mode==="estimate"?"Appointment Request":money(state.currentQuote); qs("docAddress").textContent=qs("custAddress").value||""; qs("docSchedule").textContent=formatDisplayDate(normalizeScheduleDate(qs("scheduleDate").value),qs("scheduleTime").value); goStep("customerStep4")}); qs("finishBookingBtn")?.addEventListener("click",submitPublicBooking); qs("restartCustomerBtn")?.addEventListener("click",()=>goStep("customerStep1")); qs("newTestBookingBtn")?.addEventListener("click",()=>window.location.reload()); qs("clearCustomerSigBtn")?.addEventListener("click",()=>clearSig("customerSig")); qs("saveWorkOrderBtn")?.addEventListener("click",saveWorkOrderCurrent); qs("saveWorkOrderBtnDone")?.addEventListener("click",saveWorkOrderCurrent); qsa("[data-step]").forEach(btn=>btn.addEventListener("click",()=>goStep(btn.dataset.step)))}
 
