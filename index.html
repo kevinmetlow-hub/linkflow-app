@@ -213,12 +213,13 @@
             <div><label>Phone</label><input id="bizPhone" /></div>
             <div><label>Link slug</label><input id="bizSlug" /></div>
             <div>
-              <label>Global booking mode</label>
-              <select id="quoteMode">
-                <option value="both">Use each service setting</option>
-                <option value="quote">Force quotes only</option>
-                <option value="estimate">Force appointments only</option>
-              </select>
+              <label>Estimate Type</label>
+              <div class="toggle-group" id="quoteModeToggle">
+                <button type="button" class="toggle-pill active" data-quote-mode="both">Use Service Setting</button>
+                <button type="button" class="toggle-pill" data-quote-mode="quote">Instant Quote Only</button>
+                <button type="button" class="toggle-pill" data-quote-mode="estimate">Appointment Only</button>
+              </div>
+              <input id="quoteMode" type="hidden" value="both" />
             </div>
             <div><label>Agreement title</label><input id="agreementTitle" /></div>
           </div>
