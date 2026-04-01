@@ -11,11 +11,7 @@ junk_removal:{businessName:"My Junk Removal Business",services:[{name:"Junk Pick
 scratch:{businessName:"My Business",services:[]}
 };
 
-let state={user:null,business:{id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement",logoData:""},services:[],jobs:[],editingServiceId:null,editingDraft:null,currentQuote:0,currentServiceId:null,latestAnswers:[],activeJobId:null,homeStatusFilter:"scheduled",selectedTemplate:"pressure_washing",jobExtras:{}};
-
-let authActionInFlight=false;
-let ensureContextPromise=null;
-const SUPABASE_PROJECT_REF='zobsyvttmrocmtfbppfm';
+let state={user:null,business:{id:null,name:"",phone:"",slug:"",mode:"both",agreementTitle:"Service Agreement",logoData:""},services:[],jobs:[],editingServiceId:null,editingDraft:null,currentQuote:0,currentServiceId:null,latestAnswers:[],activeJobId:null,homeStatusFilter:"scheduled",selectedTemplate:"pressure_washing",jobExtras:{},refreshing:false,pullRefreshArmed:false,pullStartY:0,pullDistance:0};
 
 const qs=id=>document.getElementById(id), qsa=s=>document.querySelectorAll(s), clone=o=>JSON.parse(JSON.stringify(o)), money=n=>"$"+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}), uid=(p="id")=>p+"_"+Date.now()+"_"+Math.floor(Math.random()*1e5);
 const escapeHtml=s=>String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -48,6 +44,10 @@ function resetAppState(){
   state.activeJobId=null;
   state.homeStatusFilter="scheduled";
   state.jobExtras={};
+  state.refreshing=false;
+  state.pullRefreshArmed=false;
+  state.pullStartY=0;
+  state.pullDistance=0;
 }
 function showLoginScreen(){
   showOnly("authSection");
@@ -59,17 +59,6 @@ function showLoginScreen(){
   if(qs('loginPassword')) qs('loginPassword').value = '';
   if(qs('signupPassword')) qs('signupPassword').value = '';
 }
-
-function warmAuthShell(){
-  const shell = qs('appShell');
-  if(!shell) return;
-  shell.classList.remove('hidden');
-  shell.setAttribute('data-auth-loading', '1');
-}
-
-function finishAuthShell(){
-  qs('appShell')?.removeAttribute('data-auth-loading');
-}
 function saveLocalExtras(){
   try{
     if(!state.user) return;
@@ -79,36 +68,92 @@ function saveLocalExtras(){
   }
 }
 function loadLocalExtras(){try{state.jobExtras=JSON.parse(localStorage.getItem(localKey("jobExtras"))||"{}")}catch(e){state.jobExtras={}}}
-
-function clearStoredAuthSession(){
-  try{
-    const keys=[];
-    for(let i=0;i<localStorage.length;i++){
-      const key=localStorage.key(i);
-      if(!key) continue;
-      if(key.includes('supabase.auth.token') || key.includes(SUPABASE_PROJECT_REF)) keys.push(key);
-    }
-    keys.forEach(key=>localStorage.removeItem(key));
-  }catch(e){}
-  try{
-    const keys=[];
-    for(let i=0;i<sessionStorage.length;i++){
-      const key=sessionStorage.key(i);
-      if(!key) continue;
-      if(key.includes('supabase.auth.token') || key.includes(SUPABASE_PROJECT_REF)) keys.push(key);
-    }
-    keys.forEach(key=>sessionStorage.removeItem(key));
-  }catch(e){}
+function setPullRefreshVisual(distance=0, loading=false){
+  const indicator = qs("pullRefreshIndicator");
+  const label = qs("pullRefreshLabel");
+  if(!indicator) return;
+  const capped = Math.max(0, Math.min(distance, 92));
+  indicator.style.setProperty("--pull-distance", `${capped}px`);
+  indicator.classList.toggle("visible", capped > 2 || loading);
+  indicator.classList.toggle("loading", !!loading);
+  if(label){
+    label.textContent = loading ? "Refreshing…" : (capped > 72 ? "Release to refresh" : "Pull to refresh");
+  }
 }
 
+async function refreshBusinessRecord(){
+  if(!state.user) return null;
+  const { data: business, error } = await supabase
+    .from('businesses')
+    .select('*')
+    .eq('user_id', state.user.id)
+    .maybeSingle();
+  if(error) throw error;
+  if(!business) return null;
+  state.business = {
+    id: business.id,
+    name: business.name || '',
+    phone: business.phone || '',
+    slug: business.slug || '',
+    mode: business.mode || 'both',
+    agreementTitle: business.agreement_title || 'Service Agreement',
+    logoData: business.logo_data || ''
+  };
+  return state.business;
+}
+
+async function refreshCurrentData(scope='all'){
+  if(!state.user || !state.business?.id || state.refreshing) return;
+  state.refreshing = true;
+  const refreshBtn = qs('manualRefreshBtn');
+  if(refreshBtn) refreshBtn.disabled = true;
+  setPullRefreshVisual(state.pullDistance, true);
+  try{
+    if(scope === 'all' || scope === 'profile'){
+      await refreshBusinessRecord();
+    }
+    const jobsPromise = (scope === 'all' || scope === 'home' || scope === 'profile') ? loadJobsFromSupabase(state.business.id) : Promise.resolve();
+    const servicesPromise = (scope === 'all' || scope === 'services' || scope === 'profile') ? loadServicesFromSupabase(state.business.id) : Promise.resolve();
+    await Promise.all([jobsPromise, servicesPromise]);
+    renderEverything();
+    renderCustomerServices();
+    setRepeatedTextById('contractorBizName', state.business.name || 'Your Jobs');
+  }catch(e){
+    console.error('refresh failed', e);
+  }finally{
+    state.refreshing = false;
+    state.pullDistance = 0;
+    setPullRefreshVisual(0, false);
+    if(refreshBtn) refreshBtn.disabled = false;
+  }
+}
+
+function scopeForScreen(name){
+  if(name === 'home') return 'home';
+  if(name === 'services' || name === 'editor') return 'services';
+  if(name === 'settings') return 'profile';
+  return 'all';
+}
+
+
 function setLogoUI(logoData){
-  const hasLogo = !!logoData;
+  const normalized = String(logoData || '').trim();
+  const hasLogo = !!normalized && normalized !== 'null' && normalized !== 'undefined';
   if(qs("logoPreviewWrap")) qs("logoPreviewWrap").classList.toggle("hidden", !hasLogo);
-  if(qs("logoPreviewImg") && hasLogo) qs("logoPreviewImg").src = logoData;
+  if(qs("logoPreviewImg")){
+    if(hasLogo) qs("logoPreviewImg").src = normalized;
+    else qs("logoPreviewImg").removeAttribute('src');
+  }
   if(qs("customerLogoWrap")) qs("customerLogoWrap").classList.toggle("hidden", !hasLogo);
-  if(qs("customerLogo") && hasLogo) qs("customerLogo").src = logoData;
+  if(qs("customerLogo")){
+    if(hasLogo) qs("customerLogo").src = normalized;
+    else qs("customerLogo").removeAttribute('src');
+  }
   if(qs("agreementLogoWrap")) qs("agreementLogoWrap").classList.toggle("hidden", !hasLogo);
-  if(qs("agreementLogo") && hasLogo) qs("agreementLogo").src = logoData;
+  if(qs("agreementLogo")){
+    if(hasLogo) qs("agreementLogo").src = normalized;
+    else qs("agreementLogo").removeAttribute('src');
+  }
 }
 
 function readFileAsDataUrl(file){
@@ -183,7 +228,6 @@ async function signUp(){
   }
 }
 async function signIn(){
-  if(authActionInFlight) return;
   const email=(qs("loginEmail")?.value||"").trim();
   const password=qs("loginPassword")?.value||"";
   if(!email || !password){
@@ -192,47 +236,34 @@ async function signIn(){
   }
   setInlineStatus("authInlineStatus","");
   setButtonLoading("loginBtn", true, "Logging in...");
-  authActionInFlight = true;
-  document.body.classList.add("app-loading");
-  warmAuthShell();
   try{
-    const {data,error}=await supabase.auth.signInWithPassword({email,password});
+    const {error}=await supabase.auth.signInWithPassword({email,password});
     if(error) throw error;
-    await ensureContext(true, data?.user || data?.session?.user || null);
+    await ensureContext();
   }catch(err){
-    finishAuthShell();
     setInlineStatus("authInlineStatus", err?.message || "Login failed.", "error");
-    stopBoot();
   }finally{
-    authActionInFlight = false;
     setButtonLoading("loginBtn", false);
   }
 }
 async function signOut(){
-  if(authActionInFlight) return;
-  authActionInFlight = true;
-  const oldKey = screenStorageKey();
+  const btn = qs('logoutBtn');
   setButtonLoading('logoutBtn', true, 'Logging out...');
-  showLoginScreen();
-  document.body.classList.add('app-loading');
+  const oldKey = screenStorageKey();
   try{
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' });
   }catch(e){
     console.warn("signOut warning", e);
   }
   try{ localStorage.removeItem(oldKey); }catch(e){}
-  clearStoredAuthSession();
   resetAppState();
   showLoginScreen();
   stopBoot();
-  authActionInFlight = false;
   setButtonLoading('logoutBtn', false);
   const path = (window.location.pathname || '').toLowerCase();
   if(!path.endsWith('/index.html') && !path.endsWith('/')){
-    window.location.replace('./index.html');
-    return;
+    window.location.href = './index.html';
   }
-  try{ window.history.replaceState({}, '', './index.html'); }catch(e){}
 }
 
 async function createBusinessFromOnboarding(){
@@ -474,9 +505,10 @@ async function saveSettings(){await requireUser(); state.business.name=qs("bizNa
   await supabase.from("businesses").update({name:state.business.name,phone:state.business.phone,slug:state.business.slug,mode:state.business.mode,agreement_title:state.business.agreementTitle,logo_data:state.business.logoData||""}).eq("id",state.business.id);
   renderSharedBits();
   if(qs("bizLogo")) qs("bizLogo").value = "";
+  await refreshCurrentData('profile');
   alert("Profile saved.")
 }
-function switchScreen(name){qsa(".screen").forEach(s=>s.classList.remove("active")); qs("screen-"+name)?.classList.add("active"); qsa(".nav-btn").forEach(b=>b.classList.remove("active")); document.querySelector(`.nav-btn[data-screen="${name}"]`)?.classList.add("active")}
+async function switchScreen(name, opts={}){qsa(".screen").forEach(s=>s.classList.remove("active")); qs("screen-"+name)?.classList.add("active"); qsa(".nav-btn").forEach(b=>b.classList.remove("active")); document.querySelector(`.nav-btn[data-screen="${name}"]`)?.classList.add("active"); if(!opts.skipSave){ try{ localStorage.setItem(screenStorageKey(), name); }catch(e){} } if(!opts.skipRefresh && state.user && state.business?.id){ await refreshCurrentData(scopeForScreen(name)); }}
 function renderEverything(){renderSharedBits(); renderMetrics(); renderJobs(); renderServicesList(); if(typeof bindServiceCardInteractions==="function") bindServiceCardInteractions()}
 function applyModifier(total,t,v){v=Number(v||0); if(t==="fixed")return total+v; if(t==="percent")return total+(total*(v/100)); if(t==="multiplier")return total*v; return total}
 function modifierText(o){const v=Number(o.modifierValue||0); if(o.modifierType==="fixed")return `${v>=0?"+":""}${money(v)}`; if(o.modifierType==="percent")return `${v>=0?"+":""}${v}%`; if(o.modifierType==="multiplier")return `x${v}`; return ""}
@@ -537,91 +569,105 @@ async function publicLoadBySlug(){
 }
 function bindCustomerEvents(){qs("custService")?.addEventListener("change",renderCustomerQuestions); qs("continueCustomerBtn")?.addEventListener("click",()=>{const svc=state.services.find(s=>s.id===qs("custService").value); if(!svc)return; const r=collectAnswersAndPrice(svc); state.currentQuote=r.total; state.latestAnswers=r.answers; const mode=effectiveModeForService(svc); qs("resultTitle").textContent=mode==="estimate"?"Book Appointment":"Your Quote"; qs("quotePrice").textContent=mode==="estimate"?"Appointment":money(r.total); qs("quoteBreakdown").textContent=mode==="estimate"?"This service is booked by appointment. Choose a time to continue.":r.parts.join(" · "); qs("continueScheduleBtn").textContent=mode==="estimate"?"Book Appointment":"Accept & Schedule"; goStep("customerStep2")}); qs("continueScheduleBtn")?.addEventListener("click",()=>goStep("customerStep3")); qs("continueAgreementBtn")?.addEventListener("click",()=>{const svc=state.services.find(s=>s.id===qs("custService").value), mode=effectiveModeForService(svc); qs("agreementHeading").textContent=state.business.agreementTitle; qs("docBizName").textContent=state.business.name; qs("docCustName").textContent=qs("custName").value||"Customer"; qs("docService").textContent=svc?.name||""; qs("docPrice").textContent=mode==="estimate"?"Appointment Request":money(state.currentQuote); qs("docAddress").textContent=qs("custAddress").value||""; qs("docSchedule").textContent=formatDisplayDate(normalizeScheduleDate(qs("scheduleDate").value),qs("scheduleTime").value); goStep("customerStep4")}); qs("finishBookingBtn")?.addEventListener("click",submitPublicBooking); qs("restartCustomerBtn")?.addEventListener("click",()=>goStep("customerStep1")); qs("newTestBookingBtn")?.addEventListener("click",()=>window.location.reload()); qs("clearCustomerSigBtn")?.addEventListener("click",()=>clearSig("customerSig")); qs("saveWorkOrderBtn")?.addEventListener("click",saveWorkOrderCurrent); qs("saveWorkOrderBtnDone")?.addEventListener("click",saveWorkOrderCurrent); qsa("[data-step]").forEach(btn=>btn.addEventListener("click",()=>goStep(btn.dataset.step)))}
 
+function setupPullToRefresh(){
+  const shell = qs('appShell');
+  const main = document.querySelector('.app-main');
+  if(!shell || !main || main.dataset.pullReady === '1') return;
+  main.dataset.pullReady = '1';
+  const start = y => {
+    if(window.scrollY > 0 || main.scrollTop > 0 || state.refreshing) return;
+    state.pullRefreshArmed = true;
+    state.pullStartY = y;
+    state.pullDistance = 0;
+    setPullRefreshVisual(0, false);
+  };
+  const move = y => {
+    if(!state.pullRefreshArmed) return;
+    const distance = Math.max(0, y - state.pullStartY);
+    state.pullDistance = Math.min(distance * 0.45, 96);
+    setPullRefreshVisual(state.pullDistance, false);
+  };
+  const end = async () => {
+    if(!state.pullRefreshArmed) return;
+    const shouldRefresh = state.pullDistance > 72;
+    state.pullRefreshArmed = false;
+    if(shouldRefresh){
+      await refreshCurrentData(scopeForScreen(document.querySelector('.screen.active')?.id?.replace('screen-','') || 'home'));
+    }else{
+      state.pullDistance = 0;
+      setPullRefreshVisual(0, false);
+    }
+  };
+  main.addEventListener('touchstart', e => start(e.touches?.[0]?.clientY || 0), { passive: true });
+  main.addEventListener('touchmove', e => move(e.touches?.[0]?.clientY || 0), { passive: true });
+  main.addEventListener('touchend', end);
+}
 
 
 function setRepeatedTextById(id, value){
   document.querySelectorAll(`#${id}`).forEach(el => { el.textContent = value; });
 }
 
-function restoreSavedScreen(){
+async function restoreSavedScreen(){
   try{
     const saved = localStorage.getItem(screenStorageKey()) || 'home';
-    if(qs('screen-'+saved)) switchScreen(saved);
+    if(qs('screen-'+saved)) await switchScreen(saved, { skipSave: true, skipRefresh: true });
+    else await switchScreen('home', { skipSave: true, skipRefresh: true });
   }catch(e){
-    switchScreen('home');
+    await switchScreen('home', { skipSave: true, skipRefresh: true });
   }
 }
 
-async function ensureContext(force=false, sessionUser=null){
-  if(ensureContextPromise && !force) return ensureContextPromise;
-  ensureContextPromise = (async () => {
-    let user = sessionUser || null;
-    if(!user){
-      const { data, error } = await supabase.auth.getSession();
-      if(error) throw error;
-      user = data?.session?.user || null;
-    }
-    state.user = user;
-    if(!user){
-      resetAppState();
-      finishAuthShell();
-      showLoginScreen();
-      stopBoot();
-      return;
-    }
-
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if(businessError){
-      console.error('business load failed', businessError);
-      finishAuthShell();
-      setInlineStatus('authInlineStatus', businessError.message || 'Could not load account.', 'error');
-      showOnly('authSection');
-      stopBoot();
-      return;
-    }
-
-    if(!business){
-      finishAuthShell();
-      renderTemplatePreview();
-      showOnly('onboardingSection');
-      stopBoot();
-      return;
-    }
-
-    state.business = {
-      id: business.id,
-      name: business.name || '',
-      phone: business.phone || '',
-      slug: business.slug || '',
-      mode: business.mode || 'both',
-      agreementTitle: business.agreement_title || 'Service Agreement',
-      logoData: business.logo_data || ''
-    };
-
-    loadLocalExtras();
-    await Promise.all([
-      loadServicesFromSupabase(state.business.id),
-      loadJobsFromSupabase(state.business.id)
-    ]);
-    renderEverything();
-    renderCustomerServices();
-    setRepeatedTextById('contractorBizName', state.business.name || 'Your Jobs');
-    showOnly('appShell');
-    finishAuthShell();
-    restoreSavedScreen();
-    stopBoot();
-  })();
-
-  try{
-    return await ensureContextPromise;
-  }finally{
-    ensureContextPromise = null;
+async function ensureContext(){
+  const { data, error } = await supabase.auth.getUser();
+  if(error) throw error;
+  const user = data?.user || null;
+  state.user = user;
+  if(!user){
+    resetAppState();
+    showLoginScreen();
+    return;
   }
+
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if(businessError){
+    console.error('business load failed', businessError);
+    setInlineStatus('authInlineStatus', businessError.message || 'Could not load account.', 'error');
+    showOnly('authSection');
+    return;
+  }
+
+  if(!business){
+    renderTemplatePreview();
+    showOnly('onboardingSection');
+    return;
+  }
+
+  state.business = {
+    id: business.id,
+    name: business.name || '',
+    phone: business.phone || '',
+    slug: business.slug || '',
+    mode: business.mode || 'both',
+    agreementTitle: business.agreement_title || 'Service Agreement',
+    logoData: business.logo_data || ''
+  };
+
+  loadLocalExtras();
+  await Promise.all([
+    loadServicesFromSupabase(state.business.id),
+    loadJobsFromSupabase(state.business.id)
+  ]);
+  renderEverything();
+  renderCustomerServices();
+  setRepeatedTextById('contractorBizName', state.business.name || 'Your Jobs');
+  showOnly('appShell');
+  await restoreSavedScreen();
 }
 
 function createBlankService(){
@@ -674,11 +720,10 @@ function bindContractorEvents(){
   qs('finishOnboardingBtn')?.addEventListener('click', createBusinessFromOnboarding);
 
   qsa('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const screen = btn.getAttribute('data-screen');
       if(!screen) return;
-      switchScreen(screen);
-      try{ localStorage.setItem(screenStorageKey(), screen); }catch(e){}
+      await switchScreen(screen);
     });
   });
 
@@ -738,6 +783,26 @@ function bindContractorEvents(){
     }
   });
 
+  qs('quoteModeToggle')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-quote-mode]');
+    if(!btn) return;
+    const mode = btn.getAttribute('data-quote-mode') || 'both';
+    state.business.mode = mode;
+    if(qs('quoteMode')) qs('quoteMode').value = mode;
+    qsa('[data-quote-mode]').forEach(x => x.classList.toggle('active', x === btn));
+  });
+  qs('bizLogo')?.addEventListener('change', async e => {
+    const file = e.target?.files?.[0];
+    if(!file) return;
+    try{
+      const logoData = await readFileAsDataUrl(file);
+      state.business.logoData = logoData;
+      setLogoUI(logoData);
+    }catch(err){
+      console.error('logo preview failed', err);
+    }
+  });
+  qs('manualRefreshBtn')?.addEventListener('click', () => refreshCurrentData(scopeForScreen(document.querySelector('.screen.active')?.id?.replace('screen-','') || 'home')));
   qs('saveSettingsBtn')?.addEventListener('click', saveSettings);
   qs('logoutBtn')?.addEventListener('click', signOut);
   qs('triggerLogoUploadBtn')?.addEventListener('click', () => qs('bizLogo')?.click());
@@ -922,23 +987,18 @@ async function init(){
   try{
     if(qs("authSection")){
       bindContractorEvents();
+      setupPullToRefresh();
       const {data}=await supabase.auth.getSession();
-      if(data.session?.user) await ensureContext(false, data.session.user);
+      if(data.session?.user) await ensureContext();
       else showOnly("authSection");
       supabase.auth.onAuthStateChange(async(event, session)=>{
         if(event === 'SIGNED_OUT' || !session?.user){
-          clearStoredAuthSession();
           resetAppState();
-          finishAuthShell();
           showLoginScreen();
           stopBoot();
-          authActionInFlight = false;
           return;
         }
-        if(authActionInFlight && event === 'SIGNED_IN'){
-          return;
-        }
-        await ensureContext(false, session?.user || null);
+        await ensureContext();
       });
     }
     if(qs("customerBizName")){
@@ -984,6 +1044,7 @@ function setButtonLoading(id, isLoading, loadingText="Loading..."){
 document.addEventListener("DOMContentLoaded", () => {
   try {
     bindContractorEvents();
+    setupPullToRefresh();
   } catch(e){
     console.error("bind error", e);
   }
