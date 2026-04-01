@@ -979,14 +979,19 @@ function bindContractorEvents(){
     });
   });
 
-  qs('newServiceBtn')?.addEventListener('click', () => {
+  qs('newServiceBtn')?.addEventListener('click', async () => {
     const service = createBlankService();
     state.services.push(service);
+    try{
+      await syncServicesToSupabase();
+    }catch(err){
+      console.error('new service sync failed', err);
+    }
     openServiceEditor(service.id);
   });
   qs('backToServicesBtn')?.addEventListener('click', () => switchScreen('services'));
   qs('addQuestionBtn')?.addEventListener('click', addQuestion);
-  qs('saveServiceBtn')?.addEventListener('click', saveServiceEditor);
+  qs('saveQuestionsBtn')?.addEventListener('click', saveServiceEditor);
   qs('deleteServiceBtn')?.addEventListener('click', deleteService);
 
   qs('serviceModeToggle')?.addEventListener('click', e => {
