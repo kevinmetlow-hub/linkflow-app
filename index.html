@@ -111,30 +111,67 @@
           <div class="contractor-hero-bg"></div>
           <div class="contractor-hero-inner">
             <div class="eyebrow">Services</div>
-            <h1 class="contractor-h1">Your Services</h1>
-            <p class="sub contractor-hero-sub">Set up pricing, questions, and how customers book.</p>
+            <h1 class="contractor-h1">Build services faster</h1>
+            <p class="sub contractor-hero-sub">Start from a template, then tap any card to edit pricing, questions, and booking behavior.</p>
           </div>
         </div>
 
         <div class="section-head">
-          <div><div class="eyebrow">Services</div><h2>Your services</h2></div>
-          <button id="newServiceBtn" class="primary small-btn">New Service</button>
+          <div><div class="eyebrow">Quick Start</div><h2>Choose a service template</h2></div>
+          <button id="newServiceBtn" class="primary small-btn">Blank Service</button>
+        </div>
+
+        <div class="template-service-grid">
+          <button class="service-template-card" data-service-template="junk_removal">
+            <span class="service-template-top"><span class="chip">Popular</span><span class="mini">Instant Quote</span></span>
+            <strong>Junk Removal</strong>
+            <span class="mini">Load size, item type, stairs</span>
+          </button>
+          <button class="service-template-card" data-service-template="pressure_washing">
+            <span class="service-template-top"><span class="chip">Popular</span><span class="mini">Instant Quote</span></span>
+            <strong>Pressure Washing</strong>
+            <span class="mini">Surface, size, stains</span>
+          </button>
+          <button class="service-template-card" data-service-template="car_detailing">
+            <span class="service-template-top"><span class="chip">Popular</span><span class="mini">Instant Quote</span></span>
+            <strong>Car Detailing</strong>
+            <span class="mini">Vehicle type, condition, add-ons</span>
+          </button>
+          <button class="service-template-card" data-service-template="lawn_service">
+            <span class="service-template-top"><span class="chip">Popular</span><span class="mini">Recurring</span></span>
+            <strong>Lawn Care</strong>
+            <span class="mini">Yard size, condition, edging</span>
+          </button>
+          <button class="service-template-card" data-service-template="house_cleaning">
+            <span class="service-template-top"><span class="chip">Fast</span><span class="mini">Instant Quote</span></span>
+            <strong>House Cleaning</strong>
+            <span class="mini">Beds, baths, deep clean</span>
+          </button>
+          <button class="service-template-card" data-service-template="handyman">
+            <span class="service-template-top"><span class="chip">Book</span><span class="mini">Estimate</span></span>
+            <strong>Handyman</strong>
+            <span class="mini">Describe the work, then schedule</span>
+          </button>
+        </div>
+
+        <div class="section-head services-list-head">
+          <div><div class="eyebrow">Your Services</div><h2>Tap a card to edit</h2></div>
         </div>
         <div id="serviceList" class="stack"></div>
       </section>
 
       <section id="screen-editor" class="screen">
-        <div class="glass contractor-hero contractor-hero-pop">
+        <div class="glass contractor-hero contractor-hero-pop services-hero">
         <div class="contractor-hero-bg"></div>
         <div class="contractor-hero-inner">
-          <div class="eyebrow">Dashboard</div>
-          <h1 id="contractorBizName" class="contractor-h1">Your Jobs</h1>
-          <p class="sub contractor-hero-sub">Manage incoming bookings and stay organized.</p>
+          <div class="eyebrow">Service Builder</div>
+          <h1 id="editorServiceLabel" class="contractor-h1">Edit service</h1>
+          <p class="sub contractor-hero-sub">Keep it simple: adjust the basics, then add only the questions customers need to answer.</p>
         </div>
       </div>
 
       <div class="section-head">
-          <div><div class="eyebrow">Service Builder</div><h2 id="editorTitle">Edit service</h2></div>
+          <div><div class="eyebrow">Edit</div><h2 id="editorTitle">Edit service</h2></div>
           <button id="backToServicesBtn" class="small-btn">Back</button>
         </div>
 
@@ -154,15 +191,30 @@
           </div>
 
           <div class="section-title">2. Customer Questions</div>
-          <div class="helper">Keep this simple. Add questions one at a time under the list below.</div>
+          <div class="helper">Start with a question type below, then tap any card to edit the wording and pricing.</div>
+
+          <div class="question-type-grid mt12">
+            <button type="button" class="question-type-card primary" data-add-question-type="multiple">
+              <strong>Multiple Choice</strong>
+              <span class="mini">Best for size, options, or add-ons</span>
+            </button>
+            <button type="button" class="question-type-card" data-add-question-type="yesno">
+              <strong>Yes / No</strong>
+              <span class="mini">Perfect for simple upsells or conditions</span>
+            </button>
+            <button type="button" class="question-type-card" data-add-question-type="text">
+              <strong>Text</strong>
+              <span class="mini">Let the customer describe the job</span>
+            </button>
+            <button type="button" class="question-type-card" data-add-question-type="number">
+              <strong>Number</strong>
+              <span class="mini">Collect quantities or measurements</span>
+            </button>
+          </div>
 
           <div id="questionList" class="stack mt12"></div>
 
-          <div class="btn-row">
-            <button id="addQuestionBtn" class="primary">Add Question</button>
-          </div>
-
-          <div class="btn-row">
+          <div class="btn-row service-builder-actions">
             <button id="saveServiceBtn" class="primary">Save Service</button>
             <button id="deleteServiceBtn" class="danger-btn">Delete Service</button>
           </div>
