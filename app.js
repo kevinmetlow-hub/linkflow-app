@@ -224,8 +224,6 @@ async function loadJobsFromSupabase(businessId){
 }
 
 
-function createBlankService(){return {id:uid("svc"),name:"New Service",base:0,mode:"quote",questions:[]}}
-
 function renderTemplatePreview(){
   const body = qs("templatePreviewBody");
   const title = qs("templatePreviewTitle");
@@ -287,7 +285,7 @@ function bindServiceCardInteractions(){
   });
 }
 
-function renderServicesList(){const box=qs("serviceList"); if(!box)return; box.innerHTML=state.services.length?state.services.map(s=>`<div class="service-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><strong>${escapeHtml(s.name)}</strong><div class="mini">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · Base ${money(s.base)}</div><div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div></div><button data-open-service="${s.id}">Edit</button></div></div>`).join(""):'<div class="service-card"><div class="mini">No services yet.</div></div>'; if(typeof bindServiceCardInteractions==="function") bindServiceCardInteractions();}
+function renderServicesList(){const box=qs("serviceList"); if(!box)return; box.innerHTML=state.services.length?state.services.map(s=>`<div class="service-card job-open-hit" data-open-service="${s.id}" tabindex="0"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;width:100%"><div><strong>${escapeHtml(s.name)}</strong><div class="mini">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · Base ${money(s.base)}</div><div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div></div><div class="job-open-arrow">›</div></div></div>`).join(""):'<div class="service-card"><div class="mini">No services yet.</div></div>'; if(typeof bindServiceCardInteractions==="function") bindServiceCardInteractions();}
 function ensureQ(q){if(q.type==="yesno"&&(!q.options||q.options.length!==2))q.options=[{id:uid("opt"),label:"Yes",modifierType:"fixed",modifierValue:0},{id:uid("opt"),label:"No",modifierType:"fixed",modifierValue:0}]; if((q.type==="text"||q.type==="number")&&!q.options)q.options=[]; if(q.type==="multiple"&&(!q.options||!q.options.length))q.options=[{id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0}]}
 function syncDraft(){if(!state.editingDraft)return; state.editingDraft.name=qs("editServiceName").value.trim()||"Untitled Service"; state.editingDraft.base=parseFloat(qs("editServiceBase").value)||0; state.editingDraft.mode=qs("editServiceMode").value; state.editingDraft.questions=(state.editingDraft.questions||[]).map(q=>{const t=document.querySelector(`[data-q-type="${q.id}"]`)?.value||q.type; const l=document.querySelector(`[data-q-label="${q.id}"]`)?.value?.trim()||q.label; let opts=[]; if(t==="multiple"||t==="yesno"){opts=(q.options||[]).map(o=>{const k=`${q.id}__${o.id}`; return {...o,label:document.querySelector(`[data-opt-label="${k}"]`)?.value?.trim()||o.label,modifierType:"fixed",modifierValue:parseFloat(document.querySelector(`[data-opt-value="${k}"]`)?.value)||0}})} return {...q,label:l,type:t,options:opts}})}
 function commitDraft(){if(!state.editingDraft||!state.editingServiceId)return; const i=state.services.findIndex(s=>s.id===state.editingServiceId); if(i>=0)state.services[i]=clone(state.editingDraft)}
@@ -460,107 +458,147 @@ async function publicLoadBySlug(){
 function bindCustomerEvents(){qs("custService")?.addEventListener("change",renderCustomerQuestions); qs("continueCustomerBtn")?.addEventListener("click",()=>{const svc=state.services.find(s=>s.id===qs("custService").value); if(!svc)return; const r=collectAnswersAndPrice(svc); state.currentQuote=r.total; state.latestAnswers=r.answers; const mode=effectiveModeForService(svc); qs("resultTitle").textContent=mode==="estimate"?"Book Appointment":"Your Quote"; qs("quotePrice").textContent=mode==="estimate"?"Appointment":money(r.total); qs("quoteBreakdown").textContent=mode==="estimate"?"This service is booked by appointment. Choose a time to continue.":r.parts.join(" · "); qs("continueScheduleBtn").textContent=mode==="estimate"?"Book Appointment":"Accept & Schedule"; goStep("customerStep2")}); qs("continueScheduleBtn")?.addEventListener("click",()=>goStep("customerStep3")); qs("continueAgreementBtn")?.addEventListener("click",()=>{const svc=state.services.find(s=>s.id===qs("custService").value), mode=effectiveModeForService(svc); qs("agreementHeading").textContent=state.business.agreementTitle; qs("docBizName").textContent=state.business.name; qs("docCustName").textContent=qs("custName").value||"Customer"; qs("docService").textContent=svc?.name||""; qs("docPrice").textContent=mode==="estimate"?"Appointment Request":money(state.currentQuote); qs("docAddress").textContent=qs("custAddress").value||""; qs("docSchedule").textContent=formatDisplayDate(normalizeScheduleDate(qs("scheduleDate").value),qs("scheduleTime").value); goStep("customerStep4")}); qs("finishBookingBtn")?.addEventListener("click",submitPublicBooking); qs("restartCustomerBtn")?.addEventListener("click",()=>goStep("customerStep1")); qs("newTestBookingBtn")?.addEventListener("click",()=>window.location.reload()); qs("clearCustomerSigBtn")?.addEventListener("click",()=>clearSig("customerSig")); qs("saveWorkOrderBtn")?.addEventListener("click",saveWorkOrderCurrent); qs("saveWorkOrderBtnDone")?.addEventListener("click",saveWorkOrderCurrent); qsa("[data-step]").forEach(btn=>btn.addEventListener("click",()=>goStep(btn.dataset.step)))}
 
 
+
+function setRepeatedTextById(id, value){
+  document.querySelectorAll(`#${id}`).forEach(el => { el.textContent = value; });
+}
+
+async function restoreSavedScreen(){
+  try{
+    const saved = localStorage.getItem(screenStorageKey()) || 'home';
+    if(qs('screen-'+saved)) await switchScreen(saved, { skipSave: true, skipRefresh: true });
+    else await switchScreen('home', { skipSave: true, skipRefresh: true });
+  }catch(e){
+    await switchScreen('home', { skipSave: true, skipRefresh: true });
+  }
+}
+
 function initSignature(id){
   const canvas = qs(id);
-  if(!canvas || canvas.dataset.sigBound === '1') return;
-  canvas.dataset.sigBound = '1';
+  if(!canvas || canvas.dataset.sigReady === '1') return;
   const ctx = canvas.getContext('2d');
   if(!ctx) return;
-  ctx.lineWidth = 2.2;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = '#111827';
+  canvas.dataset.sigReady = '1';
   let drawing = false;
-  const getPos = e => {
+  let lastX = 0, lastY = 0;
+
+  const resize = () => {
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const rect = canvas.getBoundingClientRect();
+    const cssW = Math.max(Math.round(rect.width || canvas.width || 300), 300);
+    const cssH = Math.max(Math.round(rect.height || canvas.height || 150), 150);
+    const prev = canvas.toDataURL('image/png');
+    canvas.width = Math.round(cssW * ratio);
+    canvas.height = Math.round(cssH * ratio);
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    ctx.setTransform(ratio,0,0,ratio,0,0);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = '#111827';
+    if(prev && prev !== 'data:,'){
+      const img = new Image();
+      img.onload = () => ctx.drawImage(img, 0, 0, cssW, cssH);
+      img.src = prev;
+    } else {
+      ctx.clearRect(0,0,cssW,cssH);
+    }
+  };
+
+  const point = (e) => {
     const rect = canvas.getBoundingClientRect();
     const touch = e.touches?.[0] || e.changedTouches?.[0];
     const clientX = touch ? touch.clientX : e.clientX;
     const clientY = touch ? touch.clientY : e.clientY;
-    return { x: (clientX - rect.left) * (canvas.width / rect.width), y: (clientY - rect.top) * (canvas.height / rect.height) };
+    return { x: clientX - rect.left, y: clientY - rect.top };
   };
-  const start = e => {
+  const start = (e) => {
+    e.preventDefault();
     drawing = true;
-    const p = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
-    e.preventDefault?.();
+    const p = point(e);
+    lastX = p.x; lastY = p.y;
   };
-  const move = e => {
+  const move = (e) => {
     if(!drawing) return;
-    const p = getPos(e);
+    e.preventDefault();
+    const p = point(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
-    e.preventDefault?.();
+    lastX = p.x; lastY = p.y;
   };
-  const end = e => {
-    if(!drawing) return;
-    drawing = false;
-    e.preventDefault?.();
-  };
-  canvas.addEventListener('mousedown', start);
-  canvas.addEventListener('mousemove', move);
-  window.addEventListener('mouseup', end);
+  const end = () => { drawing = false; };
+  canvas.addEventListener('pointerdown', start);
+  canvas.addEventListener('pointermove', move);
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointerleave', end);
   canvas.addEventListener('touchstart', start, {passive:false});
   canvas.addEventListener('touchmove', move, {passive:false});
-  window.addEventListener('touchend', end, {passive:false});
+  canvas.addEventListener('touchend', end);
+  window.addEventListener('resize', resize);
+  resize();
 }
 
 function clearSig(id){
   const canvas = qs(id);
-  const ctx = canvas?.getContext('2d');
-  if(canvas && ctx) ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if(!ctx) return;
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  ctx.clearRect(0, 0, canvas.width / ratio, canvas.height / ratio);
 }
 
 async function submitPublicBooking(){
+  const errorEl = qs('customerSubmitError');
+  if(errorEl) setInlineStatus('customerSubmitError', '');
   const svc = state.services.find(s => s.id === (qs('custService')?.value || state.currentServiceId));
-  if(!svc || !state.business?.id) return;
-  const name = (qs('custName')?.value || '').trim();
+  if(!svc) return;
+  const customer = (qs('custName')?.value || '').trim();
   const phone = (qs('custPhone')?.value || '').trim();
   const address = (qs('custAddress')?.value || '').trim();
-  const scheduleDate = normalizeScheduleDate(qs('scheduleDate')?.value || '');
+  const dateLabel = qs('scheduleDate')?.value || '';
+  const scheduleDate = normalizeScheduleDate(dateLabel);
   const scheduleTime = qs('scheduleTime')?.value || '';
-  const mode = effectiveModeForService(svc);
   const signatureData = qs('customerSig')?.toDataURL ? qs('customerSig').toDataURL('image/png') : '';
-  const errorBox = qs('customerSubmitError');
-  if(!name || !phone || !address || !scheduleDate || !scheduleTime){
-    setInlineStatus('customerSubmitError', 'Please fill out your contact info and schedule.', 'error');
+  if(!customer || !phone || !address){
+    setInlineStatus('customerSubmitError', 'Please fill out your name, phone, and address.', 'error');
     return;
   }
-  setInlineStatus('customerSubmitError', '');
-  setButtonLoading('finishBookingBtn', true, 'Saving...');
   try{
-    const price = mode === 'estimate' ? 0 : Number(state.currentQuote || 0);
+    setButtonLoading('finishBookingBtn', true, 'Saving...');
+    const mode = effectiveModeForService(svc);
     const agreementHtml = buildAgreementHtml({
       agreementTitle: state.business.agreementTitle,
       business: state.business.name,
-      customer: name,
+      customer,
       service: svc.name,
-      priceType: mode === 'estimate' ? 'Appointment Request' : money(price),
+      priceType: mode === 'estimate' ? 'Appointment Request' : money(state.currentQuote),
       address,
       schedule: formatDisplayDate(scheduleDate, scheduleTime),
       signatureData,
       logoData: state.business.logoData || ''
     });
-    const payload = {
+    const { data: job, error } = await supabase.from('jobs').insert({
       business_id: state.business.id,
-      customer_name: name,
+      customer_name: customer,
       phone,
       address,
       service_name: svc.name,
-      price,
+      price: mode === 'estimate' ? 0 : Number(state.currentQuote || 0),
       mode,
       schedule_date: scheduleDate,
       schedule_time: scheduleTime
-    };
-    const { data, error } = await supabase.from('jobs').insert(payload).select().single();
+    }).select().single();
     if(error) throw error;
-    await upsertJobMeta(data.id, { status:'scheduled', answers: state.latestAnswers || [], agreementHtml, signatureData });
-    qs('confirmText').textContent = `${name}, your ${svc.name} is booked for ${formatDisplayDate(scheduleDate, scheduleTime)}.`;
-    clearSig('customerSig');
+    await upsertJobMeta(job.id, { status:'scheduled', answers:state.latestAnswers || [], agreementHtml, signatureData });
+    qs('confirmText').textContent = `${customer}, your ${svc.name} is booked for ${formatDisplayDate(scheduleDate, scheduleTime)}.`;
     goStep('customerStep5');
-  }catch(err){
-    console.error('submit booking failed', err);
-    setInlineStatus('customerSubmitError', err?.message || 'Could not submit booking.', 'error');
+  }catch(e){
+    console.error('submit booking failed', e);
+    setInlineStatus('customerSubmitError', e?.message || 'Could not finish booking.', 'error');
   }finally{
     setButtonLoading('finishBookingBtn', false);
   }
@@ -577,27 +615,136 @@ async function markJobStatus(status){
     status,
     answers: job.answers || [],
     agreement_html: job.agreementHtml || '',
-    signature_data: state.jobExtras[id]?.signature_data || ''
+    signature_data: ''
   };
   saveLocalExtras();
-  await upsertJobMeta(id, { status, answers: job.answers || [], agreementHtml: job.agreementHtml || '', signatureData: state.jobExtras[id]?.signature_data || '' });
+  await upsertJobMeta(id, {
+    status,
+    answers: job.answers || [],
+    agreementHtml: job.agreementHtml || '',
+    signatureData: ''
+  });
   renderEverything();
   closeModal('jobDetailModal');
 }
 
+function setupPullToRefresh(){
+  const main = document.querySelector('.app-main');
+  if(!main || main.dataset.pullReady === '1') return;
+  main.dataset.pullReady = '1';
+  const start = y => {
+    if(window.scrollY > 0 || main.scrollTop > 0 || state.refreshing) return;
+    state.pullRefreshArmed = true;
+    state.pullStartY = y;
+    state.pullDistance = 0;
+    setPullRefreshVisual(0, false);
+  };
+  const move = y => {
+    if(!state.pullRefreshArmed) return;
+    const distance = Math.max(0, y - state.pullStartY);
+    state.pullDistance = Math.min(distance * 0.45, 96);
+    setPullRefreshVisual(state.pullDistance, false);
+  };
+  const end = async () => {
+    if(!state.pullRefreshArmed) return;
+    const shouldRefresh = state.pullDistance > 72;
+    state.pullRefreshArmed = false;
+    if(shouldRefresh){
+      await refreshCurrentData(scopeForScreen(document.querySelector('.screen.active')?.id?.replace('screen-','') || 'home'));
+    } else {
+      state.pullDistance = 0;
+      setPullRefreshVisual(0, false);
+    }
+  };
+  main.addEventListener('touchstart', e => start(e.touches?.[0]?.clientY || 0), { passive: true });
+  main.addEventListener('touchmove', e => move(e.touches?.[0]?.clientY || 0), { passive: true });
+  main.addEventListener('touchend', end);
+}
+
+async function switchScreen(name, opts={}){
+  qsa('.screen').forEach(s => s.classList.remove('active'));
+  qs('screen-'+name)?.classList.add('active');
+  qsa('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-screen') === name));
+  if(!opts.skipSave){ try{ localStorage.setItem(screenStorageKey(), name); }catch(e){} }
+  if(!opts.skipRefresh && state.user && state.business?.id){
+    await refreshCurrentData(scopeForScreen(name));
+  }
+}
+
+async function saveSettings(){
+  await requireUser();
+  state.business.name=qs('bizName').value.trim()||state.business.name;
+  state.business.phone=qs('bizPhone').value.trim();
+  state.business.slug=slugify(qs('bizSlug').value.trim())||state.business.slug;
+  state.business.mode=qs('quoteMode').value;
+  state.business.agreementTitle=qs('agreementTitle').value.trim()||'Service Agreement';
+  const logoFile = qs('bizLogo')?.files?.[0];
+  if(logoFile){ state.business.logoData = await readFileAsDataUrl(logoFile); }
+  await supabase.from('businesses').update({
+    name:state.business.name, phone:state.business.phone, slug:state.business.slug,
+    mode:state.business.mode, agreement_title:state.business.agreementTitle,
+    logo_data:state.business.logoData||''
+  }).eq('id',state.business.id);
+  renderSharedBits();
+  if(qs('bizLogo')) qs('bizLogo').value='';
+  await refreshCurrentData('profile');
+  alert('Profile saved.');
+}
+
+async function ensureContext(){
+  const { data, error } = await supabase.auth.getUser();
+  if(error) throw error;
+  const user = data?.user || null;
+  state.user = user;
+  if(!user){
+    resetAppState();
+    showLoginScreen();
+    return;
+  }
+  const { data: business, error: businessError } = await supabase.from('businesses').select('*').eq('user_id', user.id).maybeSingle();
+  if(businessError){
+    console.error('business load failed', businessError);
+    setInlineStatus('authInlineStatus', businessError.message || 'Could not load account.', 'error');
+    showOnly('authSection');
+    return;
+  }
+  if(!business){
+    renderTemplatePreview();
+    showOnly('onboardingSection');
+    return;
+  }
+  state.business = {
+    id: business.id,
+    name: business.name || '',
+    phone: business.phone || '',
+    slug: business.slug || '',
+    mode: business.mode || 'both',
+    agreementTitle: business.agreement_title || 'Service Agreement',
+    logoData: business.logo_data || ''
+  };
+  loadLocalExtras();
+  await Promise.all([ loadServicesFromSupabase(state.business.id), loadJobsFromSupabase(state.business.id) ]);
+  renderEverything();
+  renderCustomerServices();
+  setRepeatedTextById('contractorBizName', state.business.name || 'Your Jobs');
+  showOnly('appShell');
+  setupPullToRefresh();
+  await restoreSavedScreen();
+}
+
 function bindContractorEvents(){
-  if(window.__linkflowBound) return;
-  window.__linkflowBound = true;
+  if(window.__linkflowContractorBound) return;
+  window.__linkflowContractorBound = true;
 
   qsa('[data-auth-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
+      qsa('[data-auth-tab]').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
       const tab = btn.getAttribute('data-auth-tab');
-      qsa('[data-auth-tab]').forEach(x => x.classList.toggle('active', x === btn));
       qs('loginPane')?.classList.toggle('hidden', tab !== 'login');
       qs('signupPane')?.classList.toggle('hidden', tab !== 'signup');
     });
   });
-
   qs('loginBtn')?.addEventListener('click', signIn);
   qs('signupBtn')?.addEventListener('click', signUp);
   qs('loginPassword')?.addEventListener('keydown', e => { if(e.key === 'Enter') signIn(); });
@@ -605,25 +752,28 @@ function bindContractorEvents(){
 
   qsa('[data-template]').forEach(btn => {
     btn.addEventListener('click', () => {
-      qsa('[data-template]').forEach(x => x.classList.toggle('active', x === btn));
+      qsa('[data-template]').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
       state.selectedTemplate = btn.getAttribute('data-template') || 'pressure_washing';
       renderTemplatePreview();
     });
   });
-  renderTemplatePreview();
   document.querySelector('[data-template="pressure_washing"]')?.classList.add('active');
-
   qs('finishOnboardingBtn')?.addEventListener('click', createBusinessFromOnboarding);
 
-  qsa('.nav-btn').forEach(btn => btn.addEventListener('click', () => switchScreen(btn.dataset.screen)));
+  qsa('.nav-btn').forEach(btn => btn.addEventListener('click', async () => {
+    const screen = btn.getAttribute('data-screen');
+    if(screen) await switchScreen(screen);
+  }));
+
   qs('newServiceBtn')?.addEventListener('click', () => {
     const service = createBlankService();
     state.services.push(service);
-    renderServicesList();
     openServiceEditor(service.id);
   });
   qs('backToServicesBtn')?.addEventListener('click', () => switchScreen('services'));
   qs('addQuestionBtn')?.addEventListener('click', addQuestion);
+  document.querySelectorAll('[data-add-question-type]').forEach(btn => btn.addEventListener('click', () => addQuestionOfType(btn.getAttribute('data-add-question-type'))));
   qs('saveServiceBtn')?.addEventListener('click', saveServiceEditor);
   qs('deleteServiceBtn')?.addEventListener('click', deleteService);
 
@@ -635,38 +785,14 @@ function bindContractorEvents(){
     qsa('[data-service-mode]').forEach(x => x.classList.toggle('active', x === btn));
   });
 
-  qs('homeStatusToggle')?.addEventListener('click', e => {
-    const btn = e.target.closest('[data-status-filter]');
-    if(!btn) return;
-    state.homeStatusFilter = btn.getAttribute('data-status-filter') || 'scheduled';
-    qsa('[data-status-filter]').forEach(x => x.classList.toggle('active', x === btn));
-    renderJobs();
-  });
-
-  qs('serviceList')?.addEventListener('click', e => {
-    const openBtn = e.target.closest('[data-open-service], [data-edit-service]');
-    if(!openBtn) return;
-    e.preventDefault();
-    const id = openBtn.getAttribute('data-open-service') || openBtn.getAttribute('data-edit-service');
-    if(id) openServiceEditor(id);
-  });
-
-  qs('recentJobs')?.addEventListener('click', e => {
-    const card = e.target.closest('[data-open-job]');
-    if(card) openJobDetails(card.getAttribute('data-open-job'));
-  });
-
   qs('questionList')?.addEventListener('click', e => {
     const typeBtn = e.target.closest('[data-question-type]');
-    if(typeBtn){
-      updateQuestionType(typeBtn.getAttribute('data-question-id'), typeBtn.getAttribute('data-question-type'));
-      return;
-    }
-    const addBtn = e.target.closest('[data-add-option]');
-    if(addBtn){ addOption(addBtn.getAttribute('data-add-option')); return; }
-    const delQ = e.target.closest('[data-delete-question]');
-    if(delQ){
-      const qid = delQ.getAttribute('data-delete-question');
+    if(typeBtn){ updateQuestionType(typeBtn.getAttribute('data-question-id'), typeBtn.getAttribute('data-question-type')); return; }
+    const addOpt = e.target.closest('[data-add-option]');
+    if(addOpt){ addOption(addOpt.getAttribute('data-add-option')); return; }
+    const delQuestion = e.target.closest('[data-delete-question]');
+    if(delQuestion){
+      const qid = delQuestion.getAttribute('data-delete-question');
       if(!state.editingDraft) return;
       syncDraft();
       state.editingDraft.questions = (state.editingDraft.questions || []).filter(q => q.id !== qid);
@@ -676,26 +802,38 @@ function bindContractorEvents(){
     }
     const delOpt = e.target.closest('[data-delete-option]');
     if(delOpt){
-      const key = delOpt.getAttribute('data-delete-option') || '';
+      const [qid, oid] = (delOpt.getAttribute('data-delete-option') || '').split('__');
+      if(!state.editingDraft) return;
+      syncDraft();
+      const q = state.editingDraft.questions.find(x => x.id === qid);
+      if(!q) return;
+      q.options = (q.options || []).filter(o => o.id !== oid);
+      commitDraft();
+      renderQuestionEditor(state.editingDraft);
     }
   });
 
-  qs('questionList')?.addEventListener('click', e => {
-    const delOpt = e.target.closest('[data-delete-option]');
-    if(!delOpt || !state.editingDraft) return;
-    const key = delOpt.getAttribute('data-delete-option') || '';
-    const parts = key.split('__');
-    const qid = parts[0], oid = parts[1];
-    syncDraft();
-    const q = state.editingDraft.questions.find(x => x.id === qid);
-    if(!q) return;
-    q.options = (q.options || []).filter(o => o.id !== oid);
-    commitDraft();
-    renderQuestionEditor(state.editingDraft);
+  qs('quoteModeToggle')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-quote-mode]');
+    if(!btn) return;
+    const mode = btn.getAttribute('data-quote-mode') || 'both';
+    state.business.mode = mode;
+    if(qs('quoteMode')) qs('quoteMode').value = mode;
+    qsa('[data-quote-mode]').forEach(x => x.classList.toggle('active', x === btn));
   });
-
-  qs('triggerLogoUploadBtn')?.addEventListener('click', () => qs('bizLogo')?.click());
+  qs('bizLogo')?.addEventListener('change', async e => {
+    const file = e.target?.files?.[0];
+    if(!file) return;
+    try{
+      const logoData = await readFileAsDataUrl(file);
+      state.business.logoData = logoData;
+      setLogoUI(logoData);
+    }catch(err){ console.error('logo preview failed', err); }
+  });
   qs('saveSettingsBtn')?.addEventListener('click', saveSettings);
+  qs('logoutBtn')?.addEventListener('click', signOut);
+  qs('triggerLogoUploadBtn')?.addEventListener('click', () => qs('bizLogo')?.click());
+  qs('manualRefreshBtn')?.addEventListener('click', () => refreshCurrentData(scopeForScreen(document.querySelector('.screen.active')?.id?.replace('screen-','') || 'home')));
   qs('copyBookingLinkBtn')?.addEventListener('click', async () => {
     const link = `${window.location.origin}/customer.html?slug=${state.business.slug || ''}`;
     try{
@@ -703,16 +841,31 @@ function bindContractorEvents(){
       const notice = qs('bookingLinkNotice');
       if(notice){
         const original = notice.textContent;
-        notice.textContent = 'Booking link copied';
-        setTimeout(() => notice.textContent = original, 1200);
+        notice.textContent = 'Booking link copied.';
+        setTimeout(() => { notice.textContent = original || link; }, 1400);
       }
-    }catch(e){ console.warn('copy failed', e); }
+    }catch(e){ alert(link); }
   });
-  qs('logoutBtn')?.addEventListener('click', signOut);
 
-  qsa('[data-close-modal]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close-modal'))));
+  qs('homeStatusToggle')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-status-filter]');
+    if(!btn) return;
+    state.homeStatusFilter = btn.getAttribute('data-status-filter') || 'scheduled';
+    qsa('[data-status-filter]').forEach(x => x.classList.toggle('active', x === btn));
+    renderJobs();
+  });
+
+  document.addEventListener('click', e => {
+    const openJob = e.target.closest('[data-open-job]');
+    if(openJob){ openJobDetails(openJob.getAttribute('data-open-job')); return; }
+    const openService = e.target.closest('[data-open-service],[data-edit-service]');
+    if(openService){ openServiceEditor(openService.getAttribute('data-open-service') || openService.getAttribute('data-edit-service')); return; }
+    const close = e.target.closest('[data-close-modal]');
+    if(close){ closeModal(close.getAttribute('data-close-modal')); }
+  });
+
   qs('jobCallBtn')?.addEventListener('click', () => openCall(state.jobs.find(j => j.id === state.activeJobId)));
-  qs('jobTextBtn')?.addEventListener('click', () => openSms(state.jobs.find(j => j.id === state.activeJobId), 'default'));
+  qs('jobTextBtn')?.addEventListener('click', () => openSms(state.jobs.find(j => j.id === state.activeJobId), 'text'));
   qs('jobConfirmTextBtn')?.addEventListener('click', () => openSms(state.jobs.find(j => j.id === state.activeJobId), 'confirm'));
   qs('jobViewAgreementBtn')?.addEventListener('click', () => viewAgreement(state.activeJobId));
   qs('jobPrintAgreementBtn')?.addEventListener('click', () => printAgreement(state.activeJobId));
