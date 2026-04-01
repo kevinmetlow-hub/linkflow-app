@@ -25,7 +25,6 @@
         <div class="btn-row">
           <button id="loginBtn" class="primary">Log In</button>
         </div>
-        <div id="authInlineStatus" class="inline-status hidden"></div>
       </div>
 
       <div id="signupPane" class="auth-pane hidden">
@@ -36,7 +35,6 @@
         <div class="btn-row">
           <button id="signupBtn" class="primary">Create Account</button>
         </div>
-        <div id="signupInlineStatus" class="inline-status hidden"></div>
       </div>
       <div class="helper mt12">Use one email per contractor account.</div>
     </div>
@@ -77,12 +75,6 @@
   </section>
 
   <div id="appShell" class="app-shell hidden">
-    <div id="pullRefreshIndicator" class="pull-refresh-indicator" aria-hidden="true">
-      <div class="pull-refresh-pill glass">
-        <span class="pull-refresh-dot"></span>
-        <span id="pullRefreshLabel">Pull to refresh</span>
-      </div>
-    </div>
     <header class="app-header glass">
       <div>
         <div class="app-brand">LinkFlow</div>
@@ -92,12 +84,17 @@
 
     <main class="app-main">
       <section id="screen-home" class="screen active">
-        <div class="tab-hero home-tab-hero">
-          <div>
-            <div class="eyebrow">Dashboard</div>
-            <h2 id="contractorBizName" class="page-title">Your Jobs</h2>
-            <div class="helper">Manage incoming bookings and stay organized.</div>
-          </div>
+<div class="glass contractor-hero contractor-hero-pop">
+        <div class="contractor-hero-bg"></div>
+        <div class="contractor-hero-inner">
+          <div class="eyebrow">Dashboard</div>
+          <h1 id="contractorBizName" class="contractor-h1">Your Jobs</h1>
+          <p class="sub contractor-hero-sub">Manage incoming bookings and stay organized.</p>
+        </div>
+      </div>
+
+      <div class="section-head">
+          <div><div class="section-title" style="margin:0">Orders</div></div>
         </div>
 
         <div class="status-toggle" id="homeStatusToggle">
@@ -110,24 +107,34 @@
       </section>
 
       <section id="screen-services" class="screen">
-        <div class="tab-hero section-head">
-          <div>
+        <div class="glass contractor-hero contractor-hero-pop services-hero">
+          <div class="contractor-hero-bg"></div>
+          <div class="contractor-hero-inner">
             <div class="eyebrow">Services</div>
-            <h2 class="page-title">Your Services</h2>
-            <div class="helper">Set up pricing, questions, and how customers book.</div>
+            <h1 class="contractor-h1">Your Services</h1>
+            <p class="sub contractor-hero-sub">Set up pricing, questions, and how customers book.</p>
           </div>
+        </div>
+
+        <div class="section-head">
+          <div><div class="eyebrow">Services</div><h2>Your services</h2></div>
           <button id="newServiceBtn" class="primary small-btn">New Service</button>
         </div>
         <div id="serviceList" class="stack"></div>
       </section>
 
       <section id="screen-editor" class="screen">
-        <div class="tab-hero section-head">
-          <div>
-            <div class="eyebrow">Service Builder</div>
-            <h2 id="editorTitle" class="page-title">Edit service</h2>
-            <div class="helper">Make changes to pricing, questions, and booking behavior.</div>
-          </div>
+        <div class="glass contractor-hero contractor-hero-pop">
+        <div class="contractor-hero-bg"></div>
+        <div class="contractor-hero-inner">
+          <div class="eyebrow">Dashboard</div>
+          <h1 id="contractorBizName" class="contractor-h1">Your Jobs</h1>
+          <p class="sub contractor-hero-sub">Manage incoming bookings and stay organized.</p>
+        </div>
+      </div>
+
+      <div class="section-head">
+          <div><div class="eyebrow">Service Builder</div><h2 id="editorTitle">Edit service</h2></div>
           <button id="backToServicesBtn" class="small-btn">Back</button>
         </div>
 
@@ -147,12 +154,18 @@
           </div>
 
           <div class="section-title">2. Customer Questions</div>
-          <div class="helper">Keep this simple. Add questions one at a time under the list below.</div>
+          <div class="helper">Tap a question to edit it. Add only what the customer really needs to answer.</div>
 
           <div id="questionList" class="stack mt12"></div>
 
-          <div class="btn-row">
-            <button id="addQuestionBtn" class="primary">Add Question</button>
+          <div class="builder-action-bar">
+            <div class="builder-action-label">Add a question type</div>
+            <div class="btn-row builder-quick-add">
+              <button type="button" class="primary" data-add-question-type="multiple">+ Multiple Choice</button>
+              <button type="button" data-add-question-type="yesno">+ Yes / No</button>
+              <button type="button" data-add-question-type="text">+ Text</button>
+              <button type="button" data-add-question-type="number">+ Number</button>
+            </div>
           </div>
 
           <div class="btn-row">
@@ -162,15 +175,18 @@
         </div>
       </section>
 <section id="screen-settings" class="screen">
-        <div class="tab-hero profile-tab-hero">
-          <div>
+        <div class="glass contractor-hero contractor-hero-pop profile-hero">
+          <div class="contractor-hero-bg"></div>
+          <div class="contractor-hero-inner">
             <div class="eyebrow">Profile</div>
-            <h2 class="page-title">Business Profile</h2>
-            <div class="helper">Manage your branding, public form, and settings.</div>
+            <h1 class="contractor-h1">Business Profile</h1>
+            <p class="sub contractor-hero-sub">Manage your branding, public form, and settings.</p>
           </div>
         </div>
 
         <div class="glass editor-card">
+          <div class="eyebrow">Profile</div>
+          <h2>Business profile</h2>
 
           <div class="profile-top">
             <div id="logoPreviewWrap" class="profile-logo-card hidden"><img id="logoPreviewImg" class="logo-preview" alt="Logo preview" /></div>
@@ -191,20 +207,18 @@
             <div class="metric-card glass"><div class="metric-k">Quoted</div><div class="metric-v" id="mQuoted">0</div></div>
           </div>
 
-          <input id="bizLogo" type="file" accept="image/*" class="hidden" />
-
           <div class="row">
             <div><label>Business name</label><input id="bizName" /></div>
+            <div><label>Company logo</label><input id="bizLogo" type="file" accept="image/*" /></div>
             <div><label>Phone</label><input id="bizPhone" /></div>
             <div><label>Link slug</label><input id="bizSlug" /></div>
             <div>
-              <label>Estimate type</label>
-              <div class="toggle-group" id="quoteModeToggle">
-                <button type="button" class="toggle-pill active" data-quote-mode="both">Use Service Setting</button>
-                <button type="button" class="toggle-pill" data-quote-mode="quote">Quotes Only</button>
-                <button type="button" class="toggle-pill" data-quote-mode="estimate">Appointments Only</button>
-              </div>
-              <input id="quoteMode" type="hidden" value="both" />
+              <label>Global booking mode</label>
+              <select id="quoteMode">
+                <option value="both">Use each service setting</option>
+                <option value="quote">Force quotes only</option>
+                <option value="estimate">Force appointments only</option>
+              </select>
             </div>
             <div><label>Agreement title</label><input id="agreementTitle" /></div>
           </div>
@@ -222,12 +236,17 @@
   <div id="jobDetailModal" class="modal hidden">
     <div class="modal-backdrop" data-close-modal="jobDetailModal"></div>
     <div class="modal-panel glass">
-      <div class="tab-hero section-head modal-head">
-        <div>
-          <div class="eyebrow">Job Details</div>
-          <h2 id="jobDetailTitle">Order</h2>
-          <div class="helper">Review customer details, booking info, and next actions.</div>
+      <div class="glass contractor-hero contractor-hero-pop">
+        <div class="contractor-hero-bg"></div>
+        <div class="contractor-hero-inner">
+          <div class="eyebrow">Dashboard</div>
+          <h1 id="contractorBizName" class="contractor-h1">Your Jobs</h1>
+          <p class="sub contractor-hero-sub">Manage incoming bookings and stay organized.</p>
         </div>
+      </div>
+
+      <div class="section-head">
+        <div><div class="eyebrow">Job Details</div><h2 id="jobDetailTitle">Order</h2></div>
         <button data-close-modal="jobDetailModal" class="small-btn">Close</button>
       </div>
 
