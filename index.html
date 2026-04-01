@@ -51,14 +51,23 @@
       <div class="row">
         <div>
           <label>Business name</label>
-          <input id="onboardBusinessName" placeholder="Sunshine Pressure Washing" />
+          <input id="onboardBusinessName" placeholder="My Service Business" />
 
-          <div class="template-grid mt12">
+                    <div class="template-grid mt12">
             <button class="template-btn" data-template="pressure_washing">Pressure Washing</button>
             <button class="template-btn" data-template="car_detailing">Car Detailing</button>
-            <button class="template-btn" data-template="lawn_service">Lawn Service</button>
+            <button class="template-btn" data-template="lawn_service">Lawn Care</button>
+            <button class="template-btn" data-template="house_cleaning">House Cleaning</button>
+            <button class="template-btn" data-template="moving_services">Moving Services</button>
             <button class="template-btn" data-template="handyman">Handyman</button>
-            <button class="template-btn" data-template="junk_removal">Junk Removal</button>
+            <button class="template-btn" data-template="plumbing">Plumbing</button>
+            <button class="template-btn" data-template="electrical">Electrical</button>
+            <button class="template-btn" data-template="hvac">HVAC</button>
+            <button class="template-btn" data-template="landscaping">Landscaping</button>
+            <button class="template-btn" data-template="painting">Painting</button>
+            <button class="template-btn" data-template="roofing">Roofing</button>
+            <button class="template-btn" data-template="pool_cleaning">Pool Cleaning</button>
+            <button class="template-btn" data-template="event_rentals">Event Rentals</button>
             <button class="template-btn" data-template="scratch">Start From Scratch</button>
           </div>
 
@@ -116,41 +125,9 @@
             <h2 class="page-title">Your Services</h2>
             <div class="helper">Set up pricing, questions, and how customers book.</div>
           </div>
-          <button id="newServiceBtn" class="primary small-btn">Blank Service</button>
+          <button id="newServiceBtn" class="primary small-btn">New Service</button>
         </div>
-
-        <div class="glass builder-intro-card">
-          <div class="section-title">Quick Start Templates</div>
-          <div class="helper">Start with a proven setup, then tap the service card to edit pricing and questions.</div>
-          <div class="template-quick-grid mt12">
-            <button class="template-quick-card" data-use-template="pressure_washing" type="button">
-              <strong>Pressure Washing</strong>
-              <span>Driveway + house wash starter</span>
-            </button>
-            <button class="template-quick-card" data-use-template="car_detailing" type="button">
-              <strong>Car Detailing</strong>
-              <span>Interior / exterior detail starter</span>
-            </button>
-            <button class="template-quick-card" data-use-template="lawn_service" type="button">
-              <strong>Lawn Service</strong>
-              <span>Mowing with easy pricing questions</span>
-            </button>
-            <button class="template-quick-card" data-use-template="handyman" type="button">
-              <strong>Handyman</strong>
-              <span>Book-first service starter</span>
-            </button>
-            <button class="template-quick-card" data-use-template="junk_removal" type="button">
-              <strong>Junk Removal</strong>
-              <span>Estimate request starter</span>
-            </button>
-            <button class="template-quick-card" data-use-template="scratch" type="button">
-              <strong>Start From Scratch</strong>
-              <span>Create one blank service</span>
-            </button>
-          </div>
-        </div>
-
-        <div id="serviceList" class="stack mt12"></div>
+        <div id="serviceList" class="stack"></div>
       </section>
 
       <section id="screen-editor" class="screen">
@@ -179,31 +156,12 @@
           </div>
 
           <div class="section-title">2. Customer Questions</div>
-          <div class="helper">Choose a question type below, then tap the question card to edit it.</div>
-
-          <div class="quick-add-grid mt12">
-            <button id="quickAddMultipleBtn" class="quick-add-card primary" type="button">
-              <strong>Multiple Choice</strong>
-              <span>Good for price-based options</span>
-            </button>
-            <button id="quickAddYesNoBtn" class="quick-add-card" type="button">
-              <strong>Yes / No</strong>
-              <span>Fast add-on question</span>
-            </button>
-            <button id="quickAddTextBtn" class="quick-add-card" type="button">
-              <strong>Text</strong>
-              <span>Short job details from customer</span>
-            </button>
-            <button id="quickAddNumberBtn" class="quick-add-card" type="button">
-              <strong>Number</strong>
-              <span>Counts, sizes, quantities</span>
-            </button>
-          </div>
+          <div class="helper">Keep this simple. Add questions one at a time under the list below.</div>
 
           <div id="questionList" class="stack mt12"></div>
 
-          <div class="btn-row hidden">
-            <button id="addQuestionBtn" class="primary" type="button">Add Question</button>
+          <div class="btn-row">
+            <button id="addQuestionBtn" class="primary">Add Question</button>
           </div>
 
           <div class="btn-row">
