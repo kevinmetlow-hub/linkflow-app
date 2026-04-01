@@ -25,6 +25,7 @@
         <div class="btn-row">
           <button id="loginBtn" class="primary">Log In</button>
         </div>
+        <div id="authInlineStatus" class="inline-status hidden"></div>
       </div>
 
       <div id="signupPane" class="auth-pane hidden">
@@ -35,6 +36,7 @@
         <div class="btn-row">
           <button id="signupBtn" class="primary">Create Account</button>
         </div>
+        <div id="signupInlineStatus" class="inline-status hidden"></div>
       </div>
       <div class="helper mt12">Use one email per contractor account.</div>
     </div>
@@ -75,6 +77,12 @@
   </section>
 
   <div id="appShell" class="app-shell hidden">
+    <div id="pullRefreshIndicator" class="pull-refresh-indicator" aria-hidden="true">
+      <div class="pull-refresh-pill glass">
+        <span class="pull-refresh-dot"></span>
+        <span id="pullRefreshLabel">Pull to refresh</span>
+      </div>
+    </div>
     <header class="app-header glass">
       <div>
         <div class="app-brand">LinkFlow</div>
@@ -84,17 +92,12 @@
 
     <main class="app-main">
       <section id="screen-home" class="screen active">
-<div class="glass contractor-hero contractor-hero-pop">
-        <div class="contractor-hero-bg"></div>
-        <div class="contractor-hero-inner">
-          <div class="eyebrow">Dashboard</div>
-          <h1 id="contractorBizName" class="contractor-h1">Your Jobs</h1>
-          <p class="sub contractor-hero-sub">Manage incoming bookings and stay organized.</p>
-        </div>
-      </div>
-
-      <div class="section-head">
-          <div><div class="section-title" style="margin:0">Orders</div></div>
+        <div class="tab-hero home-tab-hero">
+          <div>
+            <div class="eyebrow">Dashboard</div>
+            <h2 id="contractorBizName" class="page-title">Your Jobs</h2>
+            <div class="helper">Manage incoming bookings and stay organized.</div>
+          </div>
         </div>
 
         <div class="status-toggle" id="homeStatusToggle">
@@ -107,71 +110,56 @@
       </section>
 
       <section id="screen-services" class="screen">
-        <div class="glass contractor-hero contractor-hero-pop services-hero">
-          <div class="contractor-hero-bg"></div>
-          <div class="contractor-hero-inner">
+        <div class="tab-hero section-head">
+          <div>
             <div class="eyebrow">Services</div>
-            <h1 class="contractor-h1">Build services faster</h1>
-            <p class="sub contractor-hero-sub">Start from a template, then tap any card to edit pricing, questions, and booking behavior.</p>
+            <h2 class="page-title">Your Services</h2>
+            <div class="helper">Set up pricing, questions, and how customers book.</div>
           </div>
-        </div>
-
-        <div class="section-head">
-          <div><div class="eyebrow">Quick Start</div><h2>Choose a service template</h2></div>
           <button id="newServiceBtn" class="primary small-btn">Blank Service</button>
         </div>
 
-        <div class="template-service-grid">
-          <button class="service-template-card" data-service-template="junk_removal">
-            <span class="service-template-top"><span class="chip">Popular</span><span class="mini">Instant Quote</span></span>
-            <strong>Junk Removal</strong>
-            <span class="mini">Load size, item type, stairs</span>
-          </button>
-          <button class="service-template-card" data-service-template="pressure_washing">
-            <span class="service-template-top"><span class="chip">Popular</span><span class="mini">Instant Quote</span></span>
-            <strong>Pressure Washing</strong>
-            <span class="mini">Surface, size, stains</span>
-          </button>
-          <button class="service-template-card" data-service-template="car_detailing">
-            <span class="service-template-top"><span class="chip">Popular</span><span class="mini">Instant Quote</span></span>
-            <strong>Car Detailing</strong>
-            <span class="mini">Vehicle type, condition, add-ons</span>
-          </button>
-          <button class="service-template-card" data-service-template="lawn_service">
-            <span class="service-template-top"><span class="chip">Popular</span><span class="mini">Recurring</span></span>
-            <strong>Lawn Care</strong>
-            <span class="mini">Yard size, condition, edging</span>
-          </button>
-          <button class="service-template-card" data-service-template="house_cleaning">
-            <span class="service-template-top"><span class="chip">Fast</span><span class="mini">Instant Quote</span></span>
-            <strong>House Cleaning</strong>
-            <span class="mini">Beds, baths, deep clean</span>
-          </button>
-          <button class="service-template-card" data-service-template="handyman">
-            <span class="service-template-top"><span class="chip">Book</span><span class="mini">Estimate</span></span>
-            <strong>Handyman</strong>
-            <span class="mini">Describe the work, then schedule</span>
-          </button>
+        <div class="glass builder-intro-card">
+          <div class="section-title">Quick Start Templates</div>
+          <div class="helper">Start with a proven setup, then tap the service card to edit pricing and questions.</div>
+          <div class="template-quick-grid mt12">
+            <button class="template-quick-card" data-use-template="pressure_washing" type="button">
+              <strong>Pressure Washing</strong>
+              <span>Driveway + house wash starter</span>
+            </button>
+            <button class="template-quick-card" data-use-template="car_detailing" type="button">
+              <strong>Car Detailing</strong>
+              <span>Interior / exterior detail starter</span>
+            </button>
+            <button class="template-quick-card" data-use-template="lawn_service" type="button">
+              <strong>Lawn Service</strong>
+              <span>Mowing with easy pricing questions</span>
+            </button>
+            <button class="template-quick-card" data-use-template="handyman" type="button">
+              <strong>Handyman</strong>
+              <span>Book-first service starter</span>
+            </button>
+            <button class="template-quick-card" data-use-template="junk_removal" type="button">
+              <strong>Junk Removal</strong>
+              <span>Estimate request starter</span>
+            </button>
+            <button class="template-quick-card" data-use-template="scratch" type="button">
+              <strong>Start From Scratch</strong>
+              <span>Create one blank service</span>
+            </button>
+          </div>
         </div>
 
-        <div class="section-head services-list-head">
-          <div><div class="eyebrow">Your Services</div><h2>Tap a card to edit</h2></div>
-        </div>
-        <div id="serviceList" class="stack"></div>
+        <div id="serviceList" class="stack mt12"></div>
       </section>
 
       <section id="screen-editor" class="screen">
-        <div class="glass contractor-hero contractor-hero-pop services-hero">
-        <div class="contractor-hero-bg"></div>
-        <div class="contractor-hero-inner">
-          <div class="eyebrow">Service Builder</div>
-          <h1 id="editorServiceLabel" class="contractor-h1">Edit service</h1>
-          <p class="sub contractor-hero-sub">Keep it simple: adjust the basics, then add only the questions customers need to answer.</p>
-        </div>
-      </div>
-
-      <div class="section-head">
-          <div><div class="eyebrow">Edit</div><h2 id="editorTitle">Edit service</h2></div>
+        <div class="tab-hero section-head">
+          <div>
+            <div class="eyebrow">Service Builder</div>
+            <h2 id="editorTitle" class="page-title">Edit service</h2>
+            <div class="helper">Make changes to pricing, questions, and booking behavior.</div>
+          </div>
           <button id="backToServicesBtn" class="small-btn">Back</button>
         </div>
 
@@ -191,48 +179,49 @@
           </div>
 
           <div class="section-title">2. Customer Questions</div>
-          <div class="helper">Start with a question type below, then tap any card to edit the wording and pricing.</div>
+          <div class="helper">Choose a question type below, then tap the question card to edit it.</div>
 
-          <div class="question-type-grid mt12">
-            <button type="button" class="question-type-card primary" data-add-question-type="multiple">
+          <div class="quick-add-grid mt12">
+            <button id="quickAddMultipleBtn" class="quick-add-card primary" type="button">
               <strong>Multiple Choice</strong>
-              <span class="mini">Best for size, options, or add-ons</span>
+              <span>Good for price-based options</span>
             </button>
-            <button type="button" class="question-type-card" data-add-question-type="yesno">
+            <button id="quickAddYesNoBtn" class="quick-add-card" type="button">
               <strong>Yes / No</strong>
-              <span class="mini">Perfect for simple upsells or conditions</span>
+              <span>Fast add-on question</span>
             </button>
-            <button type="button" class="question-type-card" data-add-question-type="text">
+            <button id="quickAddTextBtn" class="quick-add-card" type="button">
               <strong>Text</strong>
-              <span class="mini">Let the customer describe the job</span>
+              <span>Short job details from customer</span>
             </button>
-            <button type="button" class="question-type-card" data-add-question-type="number">
+            <button id="quickAddNumberBtn" class="quick-add-card" type="button">
               <strong>Number</strong>
-              <span class="mini">Collect quantities or measurements</span>
+              <span>Counts, sizes, quantities</span>
             </button>
           </div>
 
           <div id="questionList" class="stack mt12"></div>
 
-          <div class="btn-row service-builder-actions">
+          <div class="btn-row hidden">
+            <button id="addQuestionBtn" class="primary" type="button">Add Question</button>
+          </div>
+
+          <div class="btn-row">
             <button id="saveServiceBtn" class="primary">Save Service</button>
             <button id="deleteServiceBtn" class="danger-btn">Delete Service</button>
           </div>
         </div>
       </section>
 <section id="screen-settings" class="screen">
-        <div class="glass contractor-hero contractor-hero-pop profile-hero">
-          <div class="contractor-hero-bg"></div>
-          <div class="contractor-hero-inner">
+        <div class="tab-hero profile-tab-hero">
+          <div>
             <div class="eyebrow">Profile</div>
-            <h1 class="contractor-h1">Business Profile</h1>
-            <p class="sub contractor-hero-sub">Manage your branding, public form, and settings.</p>
+            <h2 class="page-title">Business Profile</h2>
+            <div class="helper">Manage your branding, public form, and settings.</div>
           </div>
         </div>
 
         <div class="glass editor-card">
-          <div class="eyebrow">Profile</div>
-          <h2>Business profile</h2>
 
           <div class="profile-top">
             <div id="logoPreviewWrap" class="profile-logo-card hidden"><img id="logoPreviewImg" class="logo-preview" alt="Logo preview" /></div>
@@ -253,18 +242,20 @@
             <div class="metric-card glass"><div class="metric-k">Quoted</div><div class="metric-v" id="mQuoted">0</div></div>
           </div>
 
+          <input id="bizLogo" type="file" accept="image/*" class="hidden" />
+
           <div class="row">
             <div><label>Business name</label><input id="bizName" /></div>
-            <div><label>Company logo</label><input id="bizLogo" type="file" accept="image/*" /></div>
             <div><label>Phone</label><input id="bizPhone" /></div>
             <div><label>Link slug</label><input id="bizSlug" /></div>
             <div>
-              <label>Global booking mode</label>
-              <select id="quoteMode">
-                <option value="both">Use each service setting</option>
-                <option value="quote">Force quotes only</option>
-                <option value="estimate">Force appointments only</option>
-              </select>
+              <label>Estimate type</label>
+              <div class="toggle-group" id="quoteModeToggle">
+                <button type="button" class="toggle-pill active" data-quote-mode="both">Use Service Setting</button>
+                <button type="button" class="toggle-pill" data-quote-mode="quote">Quotes Only</button>
+                <button type="button" class="toggle-pill" data-quote-mode="estimate">Appointments Only</button>
+              </div>
+              <input id="quoteMode" type="hidden" value="both" />
             </div>
             <div><label>Agreement title</label><input id="agreementTitle" /></div>
           </div>
@@ -282,17 +273,12 @@
   <div id="jobDetailModal" class="modal hidden">
     <div class="modal-backdrop" data-close-modal="jobDetailModal"></div>
     <div class="modal-panel glass">
-      <div class="glass contractor-hero contractor-hero-pop">
-        <div class="contractor-hero-bg"></div>
-        <div class="contractor-hero-inner">
-          <div class="eyebrow">Dashboard</div>
-          <h1 id="contractorBizName" class="contractor-h1">Your Jobs</h1>
-          <p class="sub contractor-hero-sub">Manage incoming bookings and stay organized.</p>
+      <div class="tab-hero section-head modal-head">
+        <div>
+          <div class="eyebrow">Job Details</div>
+          <h2 id="jobDetailTitle">Order</h2>
+          <div class="helper">Review customer details, booking info, and next actions.</div>
         </div>
-      </div>
-
-      <div class="section-head">
-        <div><div class="eyebrow">Job Details</div><h2 id="jobDetailTitle">Order</h2></div>
         <button data-close-modal="jobDetailModal" class="small-btn">Close</button>
       </div>
 
