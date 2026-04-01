@@ -267,19 +267,19 @@ function renderJobs(){
 function openJobDetails(id){const j=state.jobs.find(x=>x.id===id); if(!j)return; state.activeJobId=id; qs("jobDetailTitle").textContent=j.customer||"Order"; qs("jobDetailDate").textContent=formatDisplayDate(j.scheduleDate,j.scheduleTime); qs("jobDetailCustomer").textContent=j.customer||""; qs("jobDetailPhone").textContent=j.phone||""; qs("jobDetailAddress").textContent=j.address||""; qs("jobDetailService").textContent=j.serviceName||""; qs("jobDetailPrice").textContent=j.mode==="estimate"?"Appointment":money(j.price); qs("jobDetailStatus").textContent=statusLabel(j.status); qs("jobDetailAnswers").innerHTML=(j.answers||[]).length?j.answers.map(a=>`<div>${escapeHtml(a.question)}: ${escapeHtml(a.answer)}</div>`).join(""):"No saved answers."; openModal("jobDetailModal")}
 function bindServiceCardInteractions(){
   window.__openServiceFromCard = (id) => { if(id) openServiceEditor(id); };
-  qsa("[data-open-service]").forEach(card => {
+  qsa("[data-open-service], [data-edit-service]").forEach(card => {
     if(card.dataset.boundClick === "1") return;
     card.dataset.boundClick = "1";
     card.addEventListener("click", (e) => {
       e.preventDefault();
-      const trigger = e.target.closest("[data-open-service]") || card;
-      const id = trigger.getAttribute("data-open-service") || card.getAttribute("data-open-service");
+      const trigger = e.target.closest("[data-open-service], [data-edit-service]") || card;
+      const id = trigger.getAttribute("data-open-service") || trigger.getAttribute("data-edit-service") || card.getAttribute("data-open-service") || card.getAttribute("data-edit-service");
       if(id) openServiceEditor(id);
     });
     card.addEventListener("keydown", (e) => {
       if(e.key === "Enter" || e.key === " "){
         e.preventDefault();
-        const id = card.getAttribute("data-open-service");
+        const id = card.getAttribute("data-open-service") || card.getAttribute("data-edit-service");
         if(id) openServiceEditor(id);
       }
     });
@@ -288,18 +288,9 @@ function bindServiceCardInteractions(){
 
 function renderServicesList(){
   const box=qs("serviceList");
-  if(!box)return;
-  box.innerHTML=state.services.length
-    ? state.services.map(s=>`<div class="service-card service-open-hit" data-open-service="${s.id}" tabindex="0" role="button" aria-label="Edit ${escapeHtml(s.name)}">
-        <div class="service-card-row">
-          <div>
-            <strong>${escapeHtml(s.name)}</strong>
-            <div class="mini">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · Base ${money(s.base)}</div>
-            <div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div>
-          </div>
-          <button type="button" class="small-btn service-edit-btn" data-open-service="${s.id}">Edit</button>
-        </div>
-      </div>`).join("")
+  if(!box) return;
+  box.innerHTML = state.services.length
+    ? state.services.map(s=>`<div class="service-card service-open-hit" data-open-service="${s.id}" tabindex="0" role="button" aria-label="Edit ${escapeHtml(s.name)}"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><strong>${escapeHtml(s.name)}</strong><div class="mini">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · Base ${money(s.base)}</div><div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div></div><button type="button" class="small-btn service-edit-btn" data-open-service="${s.id}">Edit</button></div></div>`).join("")
     : '<div class="service-card"><div class="mini">No services yet.</div></div>';
   if(typeof bindServiceCardInteractions==="function") bindServiceCardInteractions();
 }
@@ -319,10 +310,7 @@ function niceQuestionType(t){
 function renderQuestionEditor(service){
   const box=qs("questionList"); if(!box)return;
   if(!service.questions.length){
-    box.innerHTML = `<div class="question-empty">
-      <div class="mini">No questions yet.</div>
-      <div class="mini">Add one below to get started.</div>
-    </div>`;
+    box.innerHTML = `<div class="question-empty"><div class="mini">No questions yet.</div><div class="mini">Add one below to get started.</div></div>`;
     return;
   }
   box.innerHTML = service.questions.map((q, idx) => {
