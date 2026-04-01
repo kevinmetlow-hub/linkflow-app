@@ -182,16 +182,25 @@
         <div class="glass editor-card">
 
           <div class="profile-top">
-            <div id="logoPreviewWrap" class="profile-logo-card hidden"><img id="logoPreviewImg" class="logo-preview" alt="Logo preview" /></div>
+            <div class="profile-brand-block">
+              <div id="logoPreviewWrap" class="profile-logo-card hidden">
+                <img id="logoPreviewImg" class="logo-preview" alt="Logo preview" />
+                <button id="triggerLogoUploadBtn" class="logo-edit-btn" type="button" aria-label="Change company logo">✎</button>
+              </div>
+            </div>
             <div class="profile-top-actions">
-              <button id="triggerLogoUploadBtn" class="primary">Change Logo</button>
               <button id="saveSettingsBtn">Save Profile</button>
-              <button id="copyBookingLinkBtn">Copy Booking Link</button>
               <button id="logoutBtn" class="danger-btn">Log Out</button>
             </div>
           </div>
 
-          <div class="notice" id="bookingLinkNotice">customer.html?slug=...</div>
+          <div class="booking-link-card">
+            <div class="booking-link-label">Public booking link</div>
+            <div class="booking-link-row">
+              <div class="booking-link-value" id="bookingLinkNotice">customer.html?slug=...</div>
+              <button id="copyBookingLinkBtn" class="small-btn" type="button">Copy</button>
+            </div>
+          </div>
 
           <div class="metric-grid profile-metrics">
             <div class="metric-card glass"><div class="metric-k">Pending</div><div class="metric-v" id="mPending">0</div></div>
