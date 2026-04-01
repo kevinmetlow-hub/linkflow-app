@@ -25,6 +25,7 @@
         <div class="btn-row">
           <button id="loginBtn" class="primary">Log In</button>
         </div>
+        <div id="authInlineStatus" class="inline-status hidden"></div>
       </div>
 
       <div id="signupPane" class="auth-pane hidden">
@@ -35,6 +36,7 @@
         <div class="btn-row">
           <button id="signupBtn" class="primary">Create Account</button>
         </div>
+        <div id="signupInlineStatus" class="inline-status hidden"></div>
       </div>
       <div class="helper mt12">Use one email per contractor account.</div>
     </div>
@@ -154,18 +156,12 @@
           </div>
 
           <div class="section-title">2. Customer Questions</div>
-          <div class="helper">Tap a question to edit it. Add only what the customer really needs to answer.</div>
+          <div class="helper">Keep this simple. Add questions one at a time under the list below.</div>
 
           <div id="questionList" class="stack mt12"></div>
 
-          <div class="builder-action-bar">
-            <div class="builder-action-label">Add a question type</div>
-            <div class="btn-row builder-quick-add">
-              <button type="button" class="primary" data-add-question-type="multiple">+ Multiple Choice</button>
-              <button type="button" data-add-question-type="yesno">+ Yes / No</button>
-              <button type="button" data-add-question-type="text">+ Text</button>
-              <button type="button" data-add-question-type="number">+ Number</button>
-            </div>
+          <div class="btn-row">
+            <button id="addQuestionBtn" class="primary">Add Question</button>
           </div>
 
           <div class="btn-row">
