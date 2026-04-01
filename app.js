@@ -3,11 +3,263 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js'
 const supabase = createClient('https://zobsyvttmrocmtfbppfm.supabase.co','sb_publishable_-OCCW_mr0YKCwTcXPycAcg_yPtW3kg5')
 
 const PRESETS={
-pressure_washing:{businessName:"My Pressure Washing Business",services:[{name:"Driveway Cleaning",base:120,mode:"quote",questions:[{label:"How big is the job?",type:"multiple",options:[["Small",0],["Medium",30],["Large",60]]},{label:"Heavy stains / extra work?",type:"yesno",options:[["Yes",35],["No",0]]}]},{name:"House Wash",base:0,mode:"estimate",questions:[{label:"House size",type:"multiple",options:[["Small",0],["Medium",0],["Large",0]]},{label:"Two-story?",type:"yesno",options:[["Yes",0],["No",0]]}]}]},
-car_detailing:{businessName:"My Detailing Business",services:[{name:"Full Detail",base:160,mode:"quote",questions:[{label:"Vehicle type",type:"multiple",options:[["Sedan",0],["SUV",35],["Truck",45]]},{label:"Pet hair?",type:"yesno",options:[["Yes",25],["No",0]]}]}]},
-lawn_service:{businessName:"My Lawn Service",services:[{name:"Weekly Mow",base:45,mode:"quote",questions:[{label:"Yard size",type:"multiple",options:[["Small",0],["Medium",15],["Large",30]]},{label:"Overgrown?",type:"yesno",options:[["Yes",25],["No",0]]}]}]},
-handyman:{businessName:"My Handyman Business",services:[{name:"Handyman Visit",base:0,mode:"estimate",questions:[{label:"Job type",type:"text",options:[]},{label:"Do you have materials already?",type:"yesno",options:[["Yes",0],["No",0]]}]}]},
-junk_removal:{businessName:"My Junk Removal Business",services:[{name:"Junk Pickup",base:0,mode:"estimate",questions:[{label:"How much needs to be removed?",type:"multiple",options:[["Small Load",0],["Medium Load",0],["Large Load",0]]},{label:"Easy access?",type:"yesno",options:[["Yes",0],["No",0]]}]}]},
+pressure_washing:{
+  businessName:"My Pressure Washing Business",
+  services:[
+    {name:"Driveway Cleaning",base:120,mode:"quote",questions:[
+      {label:"Driveway size",type:"multiple",options:[["1-car",0],["2-car",35],["3-car",65],["Extra large",95]]},
+      {label:"Surface type",type:"multiple",options:[["Concrete",0],["Pavers",20],["Decorative stone",35]]},
+      {label:"Heavy stains or buildup?",type:"yesno",options:[["Yes",45],["No",0]]}
+    ]},
+    {name:"House Wash",base:220,mode:"quote",questions:[
+      {label:"House size",type:"multiple",options:[["Small",0],["Medium",70],["Large",140]]},
+      {label:"Stories",type:"multiple",options:[["1 story",0],["2 story",50],["3 story",100]]},
+      {label:"Heavy mildew or extra buildup?",type:"yesno",options:[["Yes",60],["No",0]]}
+    ]},
+    {name:"Roof Cleaning",base:0,mode:"estimate",questions:[
+      {label:"Roof type",type:"multiple",options:[["Shingle",0],["Tile",0],["Metal",0],["Flat",0]]},
+      {label:"Approximate home size",type:"multiple",options:[["Small",0],["Medium",0],["Large",0]]},
+      {label:"Is it heavily blackened?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]}
+  ]
+},
+car_detailing:{
+  businessName:"My Detailing Business",
+  services:[
+    {name:"Full Detail",base:160,mode:"quote",questions:[
+      {label:"Vehicle type",type:"multiple",options:[["Sedan",0],["SUV",35],["Truck",45],["Large SUV / Van",65]]},
+      {label:"Interior condition",type:"multiple",options:[["Light",0],["Moderate",30],["Heavy",60]]},
+      {label:"Pet hair?",type:"yesno",options:[["Yes",25],["No",0]]},
+      {label:"Stains or spills?",type:"yesno",options:[["Yes",25],["No",0]]}
+    ]},
+    {name:"Exterior Detail",base:90,mode:"quote",questions:[
+      {label:"Vehicle type",type:"multiple",options:[["Sedan",0],["SUV",20],["Truck",30],["Large SUV / Van",45]]},
+      {label:"Wax or sealant add-on?",type:"yesno",options:[["Yes",35],["No",0]]},
+      {label:"Oxidation or heavy contamination?",type:"yesno",options:[["Yes",40],["No",0]]}
+    ]},
+    {name:"Interior Detail",base:110,mode:"quote",questions:[
+      {label:"Vehicle type",type:"multiple",options:[["Sedan",0],["SUV",25],["Truck",35],["Large SUV / Van",50]]},
+      {label:"Shampoo seats/carpet?",type:"yesno",options:[["Yes",35],["No",0]]},
+      {label:"Pet hair?",type:"yesno",options:[["Yes",25],["No",0]]}
+    ]}
+  ]
+},
+lawn_service:{
+  businessName:"My Lawn Service",
+  services:[
+    {name:"Lawn Mowing",base:45,mode:"quote",questions:[
+      {label:"Yard size",type:"multiple",options:[["Small",0],["Medium",15],["Large",35],["Extra large",55]]},
+      {label:"Grass height",type:"multiple",options:[["Normal",0],["Tall",15],["Overgrown",35]]},
+      {label:"Edging included?",type:"yesno",options:[["Yes",15],["No",0]]},
+      {label:"Clipping removal?",type:"yesno",options:[["Yes",15],["No",0]]}
+    ]},
+    {name:"Yard Cleanup",base:95,mode:"quote",questions:[
+      {label:"Cleanup size",type:"multiple",options:[["Light",0],["Medium",40],["Heavy",85]]},
+      {label:"Leaf / debris haul-away?",type:"yesno",options:[["Yes",35],["No",0]]},
+      {label:"Bush trimming included?",type:"yesno",options:[["Yes",40],["No",0]]}
+    ]},
+    {name:"Mulch / Bed Refresh",base:0,mode:"estimate",questions:[
+      {label:"Project size",type:"multiple",options:[["Small",0],["Medium",0],["Large",0]]},
+      {label:"Need mulch supplied?",type:"yesno",options:[["Yes",0],["No",0]]},
+      {label:"Existing weeds or cleanup needed?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]}
+  ]
+},
+house_cleaning:{
+  businessName:"My House Cleaning Business",
+  services:[
+    {name:"Standard Cleaning",base:110,mode:"quote",questions:[
+      {label:"Bedrooms",type:"multiple",options:[["1",0],["2",20],["3",40],["4+",65]]},
+      {label:"Bathrooms",type:"multiple",options:[["1",0],["2",15],["3",30],["4+",45]]},
+      {label:"Pets in home?",type:"yesno",options:[["Yes",20],["No",0]]}
+    ]},
+    {name:"Deep Cleaning",base:180,mode:"quote",questions:[
+      {label:"Home size",type:"multiple",options:[["Small",0],["Medium",45],["Large",90]]},
+      {label:"Condition",type:"multiple",options:[["Light",0],["Moderate",35],["Heavy",75]]},
+      {label:"Inside fridge or oven?",type:"yesno",options:[["Yes",35],["No",0]]}
+    ]},
+    {name:"Move In / Move Out Cleaning",base:0,mode:"estimate",questions:[
+      {label:"Home size",type:"multiple",options:[["1 bed",0],["2 bed",0],["3 bed",0],["4+ bed",0]]},
+      {label:"Empty or furnished?",type:"multiple",options:[["Empty",0],["Furnished",0]]},
+      {label:"Need same-week scheduling?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]}
+  ]
+},
+moving_services:{
+  businessName:"My Moving Business",
+  services:[
+    {name:"Local Move",base:0,mode:"estimate",questions:[
+      {label:"Move size",type:"multiple",options:[["Studio",0],["1 bedroom",0],["2 bedroom",0],["3+ bedroom",0]]},
+      {label:"Any stairs or elevator?",type:"multiple",options:[["No",0],["Stairs",0],["Elevator",0]]},
+      {label:"Heavy items?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]},
+    {name:"Labor Only",base:0,mode:"estimate",questions:[
+      {label:"How many rooms/items?",type:"multiple",options:[["Light",0],["Medium",0],["Heavy",0]]},
+      {label:"Loading, unloading, or both?",type:"multiple",options:[["Loading",0],["Unloading",0],["Both",0]]},
+      {label:"Need same-day help?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]},
+    {name:"Packing Service",base:0,mode:"estimate",questions:[
+      {label:"Home size",type:"multiple",options:[["Small",0],["Medium",0],["Large",0]]},
+      {label:"Packing materials needed?",type:"yesno",options:[["Yes",0],["No",0]]},
+      {label:"Fragile / specialty items?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]}
+  ]
+},
+handyman:{
+  businessName:"My Handyman Business",
+  services:[
+    {name:"Handyman Visit",base:0,mode:"estimate",questions:[
+      {label:"What do you need done?",type:"text",options:[]},
+      {label:"Job size",type:"multiple",options:[["Small repair",0],["A few tasks",0],["Half day",0],["Full day",0]]},
+      {label:"Do you already have materials?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]},
+    {name:"Furniture / Fixture Assembly",base:0,mode:"estimate",questions:[
+      {label:"What needs assembly?",type:"text",options:[]},
+      {label:"How many items?",type:"multiple",options:[["1",0],["2-3",0],["4+",0]]},
+      {label:"Mounted to wall?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]}
+  ]
+},
+plumbing:{
+  businessName:"My Plumbing Business",
+  services:[
+    {name:"Leak Repair Visit",base:0,mode:"estimate",questions:[
+      {label:"Where is the issue?",type:"multiple",options:[["Kitchen",0],["Bathroom",0],["Laundry",0],["Outside",0]]},
+      {label:"Is water actively leaking?",type:"yesno",options:[["Yes",0],["No",0]]},
+      {label:"Need same-day service?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]},
+    {name:"Drain / Clog Service",base:0,mode:"estimate",questions:[
+      {label:"What is clogged?",type:"multiple",options:[["Sink",0],["Toilet",0],["Tub / Shower",0],["Main line",0]]},
+      {label:"Completely backed up?",type:"yesno",options:[["Yes",0],["No",0]]},
+      {label:"Has this happened before?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]},
+    {name:"Fixture Install",base:0,mode:"estimate",questions:[
+      {label:"What needs installing?",type:"text",options:[]},
+      {label:"Is the new fixture already on site?",type:"yesno",options:[["Yes",0],["No",0]]},
+      {label:"Replacing existing fixture?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]}
+  ]
+},
+electrical:{
+  businessName:"My Electrical Business",
+  services:[
+    {name:"Electrical Service Visit",base:0,mode:"estimate",questions:[
+      {label:"What do you need help with?",type:"text",options:[]},
+      {label:"Issue type",type:"multiple",options:[["Outlet / switch",0],["Lights",0],["Panel / breaker",0],["Other",0]]},
+      {label:"Any power out or burning smell?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]},
+    {name:"Lighting Install",base:0,mode:"estimate",questions:[
+      {label:"What are you installing?",type:"multiple",options:[["Ceiling light",0],["Recessed lights",0],["Ceiling fan",0],["Exterior light",0]]},
+      {label:"Replacing existing fixture?",type:"yesno",options:[["Yes",0],["No",0]]},
+      {label:"How many fixtures?",type:"multiple",options:[["1",0],["2-3",0],["4+",0]]}
+    ]}
+  ]
+},
+hvac:{
+  businessName:"My HVAC Business",
+  services:[
+    {name:"AC Repair Visit",base:0,mode:"estimate",questions:[
+      {label:"System type",type:"multiple",options:[["Central AC",0],["Mini split",0],["Package unit",0],["Other",0]]},
+      {label:"Main problem",type:"multiple",options:[["Not cooling",0],["Leaking",0],["Won't turn on",0],["Making noise",0]]},
+      {label:"Emergency / no cooling now?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]},
+    {name:"Maintenance Tune-Up",base:0,mode:"estimate",questions:[
+      {label:"System type",type:"multiple",options:[["Central AC",0],["Mini split",0],["Heat pump",0]]},
+      {label:"How many systems?",type:"multiple",options:[["1",0],["2",0],["3+",0]]},
+      {label:"Last serviced over a year ago?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]},
+    {name:"New System Estimate",base:0,mode:"estimate",questions:[
+      {label:"Home size",type:"multiple",options:[["Small",0],["Medium",0],["Large",0]]},
+      {label:"Existing system working?",type:"yesno",options:[["Yes",0],["No",0]]},
+      {label:"Interested in financing?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]}
+  ]
+},
+landscaping:{
+  businessName:"My Landscaping Business",
+  services:[
+    {name:"Landscape Cleanup",base:0,mode:"estimate",questions:[
+      {label:"Cleanup size",type:"multiple",options:[["Small",0],["Medium",0],["Large",0]]},
+      {label:"Need haul-away?",type:"yesno",options:[["Yes",0],["No",0]]},
+      {label:"Bush / hedge trimming too?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]},
+    {name:"Landscape Install",base:0,mode:"estimate",questions:[
+      {label:"Project type",type:"multiple",options:[["Plants / mulch",0],["Rock / stone",0],["Sod",0],["Full redesign",0]]},
+      {label:"Project size",type:"multiple",options:[["Small",0],["Medium",0],["Large",0]]},
+      {label:"Need materials supplied?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]},
+    {name:"Sod Installation",base:0,mode:"estimate",questions:[
+      {label:"Area size",type:"multiple",options:[["Small patch",0],["Front yard",0],["Back yard",0],["Full property",0]]},
+      {label:"Old grass removal needed?",type:"yesno",options:[["Yes",0],["No",0]]},
+      {label:"Sprinkler system in place?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]}
+  ]
+},
+painting:{
+  businessName:"My Painting Business",
+  services:[
+    {name:"Interior Painting",base:0,mode:"estimate",questions:[
+      {label:"What are you painting?",type:"multiple",options:[["1 room",0],["2-3 rooms",0],["Whole interior",0],["Touch-ups",0]]},
+      {label:"Walls only or trim/ceilings too?",type:"multiple",options:[["Walls only",0],["Walls + trim",0],["Walls + trim + ceilings",0]]},
+      {label:"Patching or repair needed?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]},
+    {name:"Exterior Painting",base:0,mode:"estimate",questions:[
+      {label:"What are you painting?",type:"multiple",options:[["Touch-ups",0],["One side",0],["Full house",0],["Fence / deck",0]]},
+      {label:"Stories",type:"multiple",options:[["1 story",0],["2 story",0],["3 story",0]]},
+      {label:"Pressure washing needed first?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]}
+  ]
+},
+roofing:{
+  businessName:"My Roofing Business",
+  services:[
+    {name:"Roof Repair",base:0,mode:"estimate",questions:[
+      {label:"Roof type",type:"multiple",options:[["Shingle",0],["Tile",0],["Metal",0],["Flat",0]]},
+      {label:"Current issue",type:"multiple",options:[["Leak",0],["Missing pieces",0],["Storm damage",0],["General repair",0]]},
+      {label:"Interior leak active now?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]},
+    {name:"Roof Replacement Estimate",base:0,mode:"estimate",questions:[
+      {label:"Roof type",type:"multiple",options:[["Shingle",0],["Tile",0],["Metal",0],["Flat",0]]},
+      {label:"Home size",type:"multiple",options:[["Small",0],["Medium",0],["Large",0]]},
+      {label:"Insurance claim involved?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]}
+  ]
+},
+pool_cleaning:{
+  businessName:"My Pool Service Business",
+  services:[
+    {name:"Weekly Pool Service",base:80,mode:"quote",questions:[
+      {label:"Pool size",type:"multiple",options:[["Small",0],["Medium",20],["Large",40]]},
+      {label:"Spa included?",type:"yesno",options:[["Yes",20],["No",0]]},
+      {label:"Screen enclosure?",type:"yesno",options:[["Yes",0],["No",10]]}
+    ]},
+    {name:"One-Time Pool Cleaning",base:120,mode:"quote",questions:[
+      {label:"Pool condition",type:"multiple",options:[["Clear",0],["Dirty",35],["Green / neglected",95]]},
+      {label:"Pool size",type:"multiple",options:[["Small",0],["Medium",20],["Large",40]]},
+      {label:"Need chemicals included?",type:"yesno",options:[["Yes",30],["No",0]]}
+    ]}
+  ]
+},
+event_rentals:{
+  businessName:"My Event Rental Business",
+  services:[
+    {name:"Bounce House Rental",base:175,mode:"quote",questions:[
+      {label:"Rental length",type:"multiple",options:[["Up to 4 hours",0],["Full day",45],["Weekend",120]]},
+      {label:"Setup surface",type:"multiple",options:[["Grass",0],["Concrete",20],["Indoor",15]]},
+      {label:"Generator needed?",type:"yesno",options:[["Yes",60],["No",0]]}
+    ]},
+    {name:"Tent Rental",base:220,mode:"quote",questions:[
+      {label:"Tent size",type:"multiple",options:[["Small",0],["Medium",90],["Large",180]]},
+      {label:"Delivery and setup needed?",type:"yesno",options:[["Yes",75],["No",0]]},
+      {label:"Sidewalls needed?",type:"yesno",options:[["Yes",45],["No",0]]}
+    ]},
+    {name:"Tables and Chairs",base:0,mode:"estimate",questions:[
+      {label:"What do you need?",type:"text",options:[]},
+      {label:"Guest count",type:"multiple",options:[["Up to 25",0],["26-50",0],["51-100",0],["100+",0]]},
+      {label:"Delivery needed?",type:"yesno",options:[["Yes",0],["No",0]]}
+    ]}
+  ]
+},
 scratch:{businessName:"My Business",services:[]}
 };
 
@@ -396,7 +648,7 @@ function bindServiceCardInteractions(){
   });
 }
 
-function renderServicesList(){const box=qs("serviceList"); if(!box)return; box.innerHTML=state.services.length?state.services.map(s=>`<button class="service-card service-open-card" type="button" data-open-service="${s.id}"><div class="service-card-main"><div><strong>${escapeHtml(s.name)}</strong><div class="mini">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · Base ${money(s.base)}</div><div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div></div><span class="service-open-pill">Edit</span></div></button>`).join(""):'<div class="service-card"><div class="mini">No services yet.</div></div>'; if(typeof bindServiceCardInteractions==="function") bindServiceCardInteractions();}
+function renderServicesList(){const box=qs("serviceList"); if(!box)return; box.innerHTML=state.services.length?state.services.map(s=>`<div class="service-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><strong>${escapeHtml(s.name)}</strong><div class="mini">${effectiveModeForService(s)==="quote"?"Instant Quote":"Book Appointment"} · Base ${money(s.base)}</div><div class="mini">${s.questions.length} question${s.questions.length===1?"":"s"}</div></div><button data-edit-service="${s.id}">Edit</button></div></div>`).join(""):'<div class="service-card"><div class="mini">No services yet.</div></div>'; if(typeof bindServiceCardInteractions==="function") bindServiceCardInteractions();}
 function ensureQ(q){if(q.type==="yesno"&&(!q.options||q.options.length!==2))q.options=[{id:uid("opt"),label:"Yes",modifierType:"fixed",modifierValue:0},{id:uid("opt"),label:"No",modifierType:"fixed",modifierValue:0}]; if((q.type==="text"||q.type==="number")&&!q.options)q.options=[]; if(q.type==="multiple"&&(!q.options||!q.options.length))q.options=[{id:uid("opt"),label:"Option 1",modifierType:"fixed",modifierValue:0}]}
 function syncDraft(){if(!state.editingDraft)return; state.editingDraft.name=qs("editServiceName").value.trim()||"Untitled Service"; state.editingDraft.base=parseFloat(qs("editServiceBase").value)||0; state.editingDraft.mode=qs("editServiceMode").value; state.editingDraft.questions=(state.editingDraft.questions||[]).map(q=>{const t=document.querySelector(`[data-q-type="${q.id}"]`)?.value||q.type; const l=document.querySelector(`[data-q-label="${q.id}"]`)?.value?.trim()||q.label; let opts=[]; if(t==="multiple"||t==="yesno"){opts=(q.options||[]).map(o=>{const k=`${q.id}__${o.id}`; return {...o,label:document.querySelector(`[data-opt-label="${k}"]`)?.value?.trim()||o.label,modifierType:"fixed",modifierValue:parseFloat(document.querySelector(`[data-opt-value="${k}"]`)?.value)||0}})} return {...q,label:l,type:t,options:opts}})}
 function commitDraft(){if(!state.editingDraft||!state.editingServiceId)return; const i=state.services.findIndex(s=>s.id===state.editingServiceId); if(i>=0)state.services[i]=clone(state.editingDraft)}
@@ -413,7 +665,7 @@ function niceQuestionType(t){
 function renderQuestionEditor(service){
   const box=qs("questionList"); if(!box)return;
   if(!service.questions.length){
-    box.innerHTML = '<div class="question-empty"><div class="mini">No questions yet.</div><div class="mini">Add a question type above to get started.</div></div>';
+    box.innerHTML = '<div class="question-empty"><div class="mini">No questions yet. Use the quick buttons above to add one.</div></div>';
     return;
   }
   box.innerHTML = service.questions.map((q, idx) => {
@@ -491,11 +743,6 @@ function addQuestionOfType(type){
   commitDraft();
   renderQuestionEditor(state.editingDraft);
   renderServicesList();
-  setTimeout(() => {
-    const shells = document.querySelectorAll('.question-shell');
-    const last = shells[shells.length - 1];
-    if(last) last.open = true;
-  }, 30);
 }
 function addQuestion(){ addQuestionOfType("multiple"); }
 function addOption(qid){if(!state.editingDraft)return; syncDraft(); const q=state.editingDraft.questions.find(x=>x.id===qid); if(!q)return; q.options.push({id:uid("opt"),label:`Option ${(q.options?.length||0)+1}`,modifierType:"fixed",modifierValue:0}); commitDraft(); renderQuestionEditor(state.editingDraft)}
@@ -684,37 +931,6 @@ function createBlankService(){
     questions: []
   };
 }
-function serviceFromPresetTemplate(templateKey){
-  const tpl = PRESETS[templateKey] || PRESETS.scratch;
-  const starter = tpl.services?.[0];
-  if(!starter){
-    return createBlankService();
-  }
-  return {
-    id: uid('svc'),
-    name: starter.name || 'New Service',
-    base: Number(starter.base || 0),
-    mode: starter.mode || 'quote',
-    questions: (starter.questions || []).map(q => ({
-      id: uid('q'),
-      label: q.label || 'New question',
-      type: q.type || 'multiple',
-      options: (q.options || []).map(opt => ({
-        id: uid('opt'),
-        label: Array.isArray(opt) ? opt[0] : (opt.label || 'Option'),
-        modifierType: 'fixed',
-        modifierValue: Number(Array.isArray(opt) ? opt[1] : (opt.modifierValue ?? opt.price ?? 0))
-      }))
-    }))
-  };
-}
-
-async function useServiceTemplate(templateKey){
-  const service = serviceFromPresetTemplate(templateKey);
-  state.services.push(service);
-  renderServicesList();
-  openServiceEditor(service.id);
-}
 
 function bindContractorEvents(){
   if(window.__linkflowContractorBound) return;
@@ -768,18 +984,8 @@ function bindContractorEvents(){
     state.services.push(service);
     openServiceEditor(service.id);
   });
-  qsa('[data-use-template]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const key = btn.getAttribute('data-use-template') || 'scratch';
-      useServiceTemplate(key);
-    });
-  });
   qs('backToServicesBtn')?.addEventListener('click', () => switchScreen('services'));
   qs('addQuestionBtn')?.addEventListener('click', addQuestion);
-  qs('quickAddMultipleBtn')?.addEventListener('click', () => addQuestionOfType('multiple'));
-  qs('quickAddYesNoBtn')?.addEventListener('click', () => addQuestionOfType('yesno'));
-  qs('quickAddTextBtn')?.addEventListener('click', () => addQuestionOfType('text'));
-  qs('quickAddNumberBtn')?.addEventListener('click', () => addQuestionOfType('number'));
   qs('saveServiceBtn')?.addEventListener('click', saveServiceEditor);
   qs('deleteServiceBtn')?.addEventListener('click', deleteService);
 
@@ -879,6 +1085,11 @@ function bindContractorEvents(){
     const openJob = e.target.closest('[data-open-job]');
     if(openJob){
       openJobDetails(openJob.getAttribute('data-open-job'));
+      return;
+    }
+    const editServiceBtn = e.target.closest('[data-edit-service]');
+    if(editServiceBtn){
+      openServiceEditor(editServiceBtn.getAttribute('data-edit-service'));
       return;
     }
     const closeBtn = e.target.closest('[data-close-modal]');
